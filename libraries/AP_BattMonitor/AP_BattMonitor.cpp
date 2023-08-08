@@ -20,6 +20,7 @@
 #include "AP_BattMonitor_Torqeedo.h"
 #include "AP_BattMonitor_FuelLevel_Analog.h"
 #include "AP_BattMonitor_Synthetic_Current.h"
+#include "AP_BattMonitor_PCU.h"
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -376,6 +377,11 @@ AP_BattMonitor::init()
                 drivers[instance] = new AP_BattMonitor_EFI(*this, state[instance], _params[instance]);
                 break;
 #endif // AP_BATTERY_EFI_ENABLED
+#if HAL_PCU_ENABLED
+            case Type::ALIGN_PCU:
+                 drivers[instance] = new AP_BattMonitor_PCU(*this, state[instance], _params[instance]);
+                 break;
+#endif
             case Type::NONE:
             default:
                 break;
