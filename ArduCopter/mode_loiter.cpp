@@ -86,9 +86,16 @@ void ModeLoiter::run()
     float target_roll, target_pitch;
     float target_yaw_rate = 0.0f;
     float target_climb_rate = 0.0f;
+    int16_t max_speed_down = 0;
+
+    if ((get_alt_above_ground_cm() < g2.land_alt_low) && (abs(g.land_speed) > 0) && copter.rangefinder_alt_ok() ) {
+        max_speed_down = -abs(g.land_speed);
+    } else {
+        max_speed_down = -get_pilot_speed_dn();
+    }
 
     // set vertical speed and acceleration limits
-    pos_control->set_max_speed_accel_z(-get_pilot_speed_dn(), g.pilot_speed_up, g.pilot_accel_z);
+    pos_control->set_max_speed_accel_z(max_speed_down, g.pilot_speed_up, g.pilot_accel_z);
 
     // process pilot inputs unless we are in radio failsafe
     if (!copter.failsafe.radio) {
@@ -106,7 +113,7 @@ void ModeLoiter::run()
 
         // get pilot desired climb rate
         target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
-        target_climb_rate = constrain_float(target_climb_rate, -get_pilot_speed_dn(), g.pilot_speed_up);
+        target_climb_rate = constrain_float(target_climb_rate, max_speed_down, g.pilot_speed_up);
     } else {
         // clear out pilot desired acceleration in case radio failsafe event occurs and we do not switch to RTL for some reason
         loiter_nav->clear_pilot_desired_acceleration();
