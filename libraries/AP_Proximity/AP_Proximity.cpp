@@ -27,6 +27,7 @@
 #include "AP_Proximity_AirSimSITL.h"
 #include "AP_Proximity_Cygbot_D1.h"
 #include "AP_Proximity_DroneCAN.h"
+#include "AP_Proximity_N10P.h"
 
 #include <AP_Logger/AP_Logger.h>
 
@@ -169,6 +170,14 @@ void AP_Proximity::init()
             if (AP_Proximity_LightWareSF45B::detect(serial_instance)) {
                 state[instance].instance = instance;
                 drivers[instance] = new AP_Proximity_LightWareSF45B(*this, state[instance], params[instance], serial_instance);
+                serial_instance++;
+            }
+            break;
+
+        case Type::N10P:
+            if (AP_Proximity_N10P::detect(serial_instance)) {
+                state[instance].instance = instance;
+                drivers[instance] = new AP_Proximity_N10P(*this, state[instance], params[instance], serial_instance);
                 serial_instance++;
             }
             break;
