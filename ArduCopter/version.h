@@ -19,7 +19,7 @@
 
 // Align version 
 #define MIDDLE_MAJOR 0
-#define MIDDLE_MINOR 0
+#define MIDDLE_MINOR 2
 #define MIDDLE_PATCH 0
 #define MIDDLE_TYPE FIRMWARE_VERSION_TYPE_DEV
 
