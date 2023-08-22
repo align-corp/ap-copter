@@ -20,11 +20,8 @@ void Copter::landinggear_update()
         // use altitude above home for non-functioning rangefinder
         break;
 
+    // Use last good reading if the sensor is out of range
     case RangeFinder::Status::OutOfRangeLow:
-        // altitude is close to zero (gear should deploy)
-        height_cm = 0;
-        break;
-
     case RangeFinder::Status::OutOfRangeHigh:
     case RangeFinder::Status::Good:
         // use last good reading
