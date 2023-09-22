@@ -2680,3 +2680,17 @@ function dirlist(directoryname) end
 --desc
 --@param filename
 function remove(filename) end
+
+--desc
+---@class fence
+fence = {}
+
+-- returns bit mask of the fence types that have been breached
+---@return number
+function fence:get_breaches() end
+
+-- returns maximum distance in meters outside
+-- of the given fences. fence_type is a bitmask here.
+---@return number
+---@param fence_type number
+function fence:get_breach_distance(fence_type) end

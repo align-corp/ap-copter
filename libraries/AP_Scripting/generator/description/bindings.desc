@@ -623,6 +623,11 @@ singleton AP_Winch method release_length void float'skip_check
 singleton AP_Winch method set_desired_rate void float'skip_check
 singleton AP_Winch method get_rate_max float
 
+include AC_Fence/AC_Fence.h
+singleton AC_Fence rename fence
+singleton AC_Fence method get_breaches uint8_t
+singleton AC_Fence method get_breach_distance float uint8_t'skip_check
+
 -- ----EFI Library----
 include AP_EFI/AP_EFI.h depends HAL_EFI_ENABLED
 include AP_EFI/AP_EFI_Scripting.h depends AP_EFI_SCRIPTING_ENABLED
