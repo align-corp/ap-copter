@@ -1,0 +1,7 @@
+include ../AP3/hwdef.dat
+
+# defines
+define ARMING_DELAY_SEC 0.5f
+
+# default parameters
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M6T22.param'
