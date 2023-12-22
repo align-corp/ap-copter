@@ -1,0 +1,14 @@
+include ../AP3/hwdef.dat
+
+# defines
+define ARMING_DELAY_SEC 0.5f
+
+# adc on channels 5-6
+undef HAL_USE_ADC
+undef PB1
+undef PB0
+PB1 BATT_VOLTAGE_SENS ADC1 SCALE(1) # pin 5 - PWM 5
+PB0 BATT_CURRENT_SENS ADC1 SCALE(1) # pin 9 - PWM 6
+
+# default parameters
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M4T12.param'
