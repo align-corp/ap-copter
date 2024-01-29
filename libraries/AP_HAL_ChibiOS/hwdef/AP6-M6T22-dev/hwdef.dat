@@ -1,0 +1,9 @@
+include ../AP6/hwdef.dat
+
+# defines
+define ARMING_DELAY_SEC 0.5f
+
+define ALIGN_FRAME ALIGN_M6T22_DEV
+
+# default parameters
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M6T22_AP6.param'

@@ -1,0 +1,14 @@
+include ../AP6/hwdef.dat
+
+# defines
+define ARMING_DELAY_SEC 0.5f
+define PARAM_READONLY 1
+
+# PCU on Serial 5
+define HAL_SERIAL5_PROTOCOL SerialProtocol_PCU
+define HAL_SERIAL5_BAUD 115
+
+define ALIGN_FRAME ALIGN_M490
+
+# default parameters
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M490_RW.param'
