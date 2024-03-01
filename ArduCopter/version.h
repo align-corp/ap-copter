@@ -20,7 +20,7 @@
 // Align version 
 #define MIDDLE_MAJOR 0
 #define MIDDLE_MINOR 2
-#define MIDDLE_PATCH 6
+#define MIDDLE_PATCH 8
 #define MIDDLE_TYPE FIRMWARE_VERSION_TYPE_DEV
 
 #include <AP_Common/AP_FWVersionDefine.h>
