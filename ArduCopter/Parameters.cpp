@@ -1442,7 +1442,7 @@ void Copter::convert_pid_parameters(void)
 
 #if FRAME_CONFIG != HELI_FRAME
     // Multicopter x-frame gains are 40% lower because -1 or +1 input to motors now results in maximum rotation
-    if (g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_X || g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_V || g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_H) {
+    if (g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_X || g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_V || g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_H || g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_ALIGN_M460 || g.frame_type == AP_Motors::MOTOR_FRAME_TYPE_ALIGN_M490) {
         pid_scaler = 0.9f;
     }
 #endif
