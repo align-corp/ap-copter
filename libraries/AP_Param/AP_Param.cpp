@@ -62,6 +62,10 @@ AP_Param *AP_Param::_singleton;
 #define GCS_SEND_PARAM(name, type, v)
 #endif
 
+#ifndef PARAM_READONLY
+#define PARAM_READONLY 0
+#endif
+
 // Note about AP_Vector3f handling.
 // The code has special cases for AP_Vector3f to allow it to be viewed
 // as both a single 3 element vector and as a set of 3 AP_Float
@@ -2124,12 +2128,21 @@ bool AP_Param::parse_param_line(char *line, char **vname, float &value, bool &re
     value = strtof(value_s, NULL);
     *vname = pname;
 
+    #if PARAM_READONLY == 0
     const char *flags_s = strtok_r(nullptr, ", =\t\r\n", &saveptr);
     if (flags_s && strcmp(flags_s, "@READONLY") == 0) {
-        read_only = true;
+            read_only = true;
     } else {
-        read_only = false;
+            read_only = false;
     }
+    #else
+    const char *flags_s = strtok_r(nullptr, ", =\t\r\n", &saveptr);
+    if (flags_s && strcmp(flags_s, "@RW") == 0) {
+            read_only = false;
+    } else {
+            read_only = true;
+    }
+    #endif
 
     return true;
 }
