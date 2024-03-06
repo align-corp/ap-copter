@@ -1,10 +1,10 @@
 # hw definition file for processing by chibios_hwdef.py
 # for AP3 hardware
 
-# USB setup (future use)
-#USB_VENDOR 0x2A58 # ALIGN Corporation Limited
-#USB_PRODUCT 0xA001
-#USB_STRING_MANUFACTURER "ALIGN"
+# USB setup
+USB_VENDOR 0x2A58 # ALIGN Corporation Limited
+USB_PRODUCT 0xA001 # AP3
+USB_STRING_MANUFACTURER "ALIGN"
 
 # MCU class and specific type
 MCU STM32H7xx STM32H743xx
