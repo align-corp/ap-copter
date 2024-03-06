@@ -1,6 +1,15 @@
 # hw definition file for processing by chibios_hwdef.py
 # for AP3 hardware
 
+# define AP3 frames
+define ALIGN_M460_DEV 0x01010000
+define ALIGN_M460 0x01010001
+define ALIGN_M460_G3P 0x01010101
+define ALIGN_M490_DEV 0x01020000
+define ALIGN_M490 0x01020001
+define ALIGN_M6T22_DEV 0x01030000
+define ALIGN_M6T22 0x01030001
+
 # USB setup
 USB_VENDOR 0x2A58 # ALIGN Corporation Limited
 USB_PRODUCT 0xA001 # AP3

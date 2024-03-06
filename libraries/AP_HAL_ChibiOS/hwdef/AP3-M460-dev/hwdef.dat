@@ -7,5 +7,7 @@ define ARMING_DELAY_SEC 0.5f
 define HAL_SERIAL6_PROTOCOL SerialProtocol_PCU
 define HAL_SERIAL6_BAUD 115
 
+define ALIGN_FRAME ALIGN_M460_DEV
+
 # default parameters
 env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M460.param'
