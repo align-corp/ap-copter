@@ -164,6 +164,7 @@ end
 if rc:find_channel_for_option(213) == nil or rc:find_channel_for_option(214) == nil then
 param:set_and_save("RC11_OPTION", 213)
 param:set_and_save("RC13_OPTION", 214)
+param:set_and_save("RC11_REVERSED", 1)
 gcs:send_text(MAV_SEVERITY.CRITICAL, "G3P: setting RC input")
 need_reboot = true
 end
