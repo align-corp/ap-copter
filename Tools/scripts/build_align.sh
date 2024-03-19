@@ -4,7 +4,7 @@
 set -e
 
 # specify boards
-BOARDS="AP3-M460 AP3-M460-dev AP3-M460-G3P"
+BOARDS="AP3-M460 AP3-M460-dev AP3-M460-G3P AP3-M490 AP3-M490-dev"
 
 # prepare align-build folder
 if [ -d "align-build" ]; then
