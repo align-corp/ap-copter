@@ -4,6 +4,8 @@ include ../AP6/hwdef.dat
 define ARMING_DELAY_SEC 0.5f
 
 # PCU on Serial 5
+undef HAL_SERIAL5_PROTOCOL
+undef HAL_SERIAL5_BAUD
 define HAL_SERIAL5_PROTOCOL SerialProtocol_PCU
 define HAL_SERIAL5_BAUD 115
 
