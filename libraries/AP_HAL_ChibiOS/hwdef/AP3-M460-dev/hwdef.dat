@@ -9,5 +9,10 @@ define HAL_SERIAL6_BAUD 115
 
 define ALIGN_FRAME ALIGN_M460_DEV
 
+# undef USB setup for easy access with QGC
+undef USB_VENDOR
+undef USB_PRODUCT
+undef USB_STRING_MANUFACTURER
+
 # default parameters
 env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M460.param'
