@@ -1,4 +1,4 @@
--- Driver for Custom Serial Rangefinder (NRA12) - version 1.2
+-- Driver for Custom Serial Rangefinder (NRA12) - version 1.3
 local UART_BAUD = uint32_t(115200)
 local OUT_OF_RANGE_HIGH = 20
 local INSTANCE = 0
@@ -11,12 +11,14 @@ local HEADER2_TARGET_INFO = 0x0C
 local HEADER3_TARGET_INFO = 0x07
 local END1 = 0x55
 local END2 = 0x55
-assert(param:add_table(PARAM_TABLE_KEY, "NRA_", 3), 'could not add param table')
+assert(param:add_table(PARAM_TABLE_KEY, "NRA_", 4), 'could not add param table')
 assert(param:add_param(PARAM_TABLE_KEY, 1, "DEBUG", 0), 'could not add param1')
 assert(param:add_param(PARAM_TABLE_KEY, 2, "LOG", 0), 'could not add param2')
 assert(param:add_param(PARAM_TABLE_KEY, 3, "UPDATE", 24), 'could not add param3')
+assert(param:add_param(PARAM_TABLE_KEY, 4, "AVD_CM", 1000), 'could not add param4')
 local NRA_DEBUG = Parameter("NRA_DEBUG")
 local NRA_UPDATE = Parameter("NRA_UPDATE")
+local NRA_AVD_CM = Parameter("NRA_AVD_CM")
 local lua_rfnd_backend
 local parse_state = 0
 local distance = 0
@@ -113,19 +115,22 @@ gcs:send_text(MAV_SEVERITY.EMERGENCY, string.format("RFND: Lua Script Error"))
 end
 end
 function check_auto()
+if NRA_AVD_CM:get() < 50 then
+return
+end
 if vehicle:get_mode() ~= 3 then
 return
 end
 if ahrs:groundspeed_vector():length() <= 1 then
 return
 end
-if distance < 1000 and distance <= last_dist_cm then
+if distance < NRA_AVD_CM:get() and distance <= last_dist_cm then
 avoid_count = avoid_count + 1
 else
 avoid_count = 0
 end
 last_dist_cm = distance
-if avoid_count >= 2 then
+if avoid_count >= 3 then
 vehicle:set_mode(5)
 gcs:send_text(2, string.format("Obstacle detected at %d cm, switch to Loiter", distance))
 avoid_count = 0

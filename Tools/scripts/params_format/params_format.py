@@ -7,8 +7,9 @@ import re
 import sys
 import os
 
-line_to_delete = ["BARO1", "BARO2", "BARO3", "COMPASS_DEV", "COMPASS_DIA", "COMPASS_MOT", "COMPASS_ODI", "COMPASS_OFS", "COMPASS_PRIO", "COMPASS_SCALE", "INS_ACC", "INS_GYR1", "INS_GYR2", "INS_GYR3", "INS_GYROFF"]
-
+line_to_delete = ["AHRS_TRIM", "BARO1", "BARO2", "BARO3", "COMPASS_DEV", "COMPASS_DIA", "COMPASS_MOT", "COMPASS_ODI",
+                  "COMPASS_OFS", "COMPASS_PRIO", "COMPASS_SCALE", "INS_ACC1", "INS_ACC2","INS_ACC3",
+                  "INS_ACCOFF", "INS_ACCSCAL", "INS_ACC_ID", "INS_GYR1", "INS_GYR2", "INS_GYR3", "INS_GYROFF"]
 
 def transform_line(line):
     # Use regular expressions to match the desired pattern

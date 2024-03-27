@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     input_file1 = sys.argv[1]
     input_file2 = sys.argv[2]
-    output_file = "output.parm"
+    output_file = "Align_diff.param"
 
     compare_files(input_file1, input_file2, output_file)
     print(f"Differences written to: {output_file}")
