@@ -81,6 +81,14 @@ void ModeAuto::exit()
 //      should be called at 100hz or more
 void ModeAuto::run()
 {
+    // pilot override
+    if ((copter.g2.auto_options & (uint32_t)Options::DisablePilotOverride) == 0) {
+        const bool pilot_override = !(channel_roll->in_trim_dz() && channel_pitch->in_trim_dz() && channel_yaw->in_trim_dz() && channel_throttle->in_trim_dz());
+        if (pilot_override) {
+            copter.set_mode(Mode::Number::LOITER, ModeReason::UNKNOWN);
+        }
+    }
+
     // start or update mission
     if (waiting_to_start) {
         // don't start the mission until we have an origin
