@@ -83,8 +83,13 @@ void ModeAuto::run()
 {
     // pilot override
     if ((copter.g2.auto_options & (uint32_t)Options::DisablePilotOverride) == 0) {
-        const bool pilot_override = !(channel_roll->in_trim_dz() && channel_pitch->in_trim_dz() && channel_yaw->in_trim_dz() && channel_throttle->in_trim_dz());
+        const float pilot_roll = channel_roll->norm_input();
+        const float pilot_pitch = channel_pitch->norm_input();
+        const float pilot_yaw = channel_yaw->norm_input();
+        const float pilot_throttle = copter.get_pilot_desired_climb_rate(copter.channel_throttle->get_control_in()); // cm/s
+        const bool pilot_override = fabsf(pilot_roll)>0.3 || fabsf(pilot_pitch)>0.3 || fabsf(pilot_yaw)>0.3 || fabsf(pilot_throttle)>30;
         if (pilot_override) {
+            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Switch to loiter: %f %f %f %f", pilot_roll, pilot_pitch, pilot_yaw, pilot_throttle);
             copter.set_mode(Mode::Number::LOITER, ModeReason::UNKNOWN);
         }
     }
