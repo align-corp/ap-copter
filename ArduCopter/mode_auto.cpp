@@ -53,6 +53,9 @@ bool ModeAuto::init(bool ignore_checks)
         // reset flag indicating if pilot has applied roll or pitch inputs during landing
         copter.ap.land_repo_active = false;
 
+        // reset altitude stick mixing
+        wp_nav->reset_alt_stick_mix();
+
 #if PRECISION_LANDING == ENABLED
         // initialise precland state machine
         copter.precland_statemachine.init();
@@ -81,19 +84,6 @@ void ModeAuto::exit()
 //      should be called at 100hz or more
 void ModeAuto::run()
 {
-    // pilot override
-    if ((copter.g2.auto_options & (uint32_t)Options::DisablePilotOverride) == 0) {
-        const float pilot_roll = channel_roll->norm_input();
-        const float pilot_pitch = channel_pitch->norm_input();
-        const float pilot_yaw = channel_yaw->norm_input();
-        const float pilot_throttle = copter.get_pilot_desired_climb_rate(copter.channel_throttle->get_control_in()); // cm/s
-        const bool pilot_override = fabsf(pilot_roll)>0.3 || fabsf(pilot_pitch)>0.3 || fabsf(pilot_yaw)>0.3 || fabsf(pilot_throttle)>30;
-        if (pilot_override) {
-            GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Switch to loiter: %f %f %f %f", pilot_roll, pilot_pitch, pilot_yaw, pilot_throttle);
-            copter.set_mode(Mode::Number::LOITER, ModeReason::UNKNOWN);
-        }
-    }
-
     // start or update mission
     if (waiting_to_start) {
         // don't start the mission until we have an origin
@@ -991,11 +981,40 @@ void ModeAuto::wp_run()
         return;
     }
 
+    // switch to loiter if pilot roll or pitch input is > 50%
+    if ((copter.g2.auto_options & (uint32_t)Options::PilotOverride) != 0) {
+        const float pilot_roll = channel_roll->norm_input();
+        const float pilot_pitch = channel_pitch->norm_input();
+        const bool pilot_override = fabsf(pilot_roll)>0.5 || fabsf(pilot_pitch)>0.5;
+        if (pilot_override) {
+            copter.set_mode(Mode::Number::LOITER, ModeReason::UNKNOWN);
+        }
+    }
+
     // set motors to full range
     motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
     // run waypoint controller
     copter.failsafe_terrain_set_status(wp_nav->update_wpnav());
+
+    // stick mixing for altitude
+    if (!copter.failsafe.radio && ((copter.g2.auto_options & (uint32_t)Options::AltitudeStickMix) != 0)) {
+        // constrain speeds to maximum 1 m/s. If PILOT_SPEED_UP(DOWN) is less than 1 m/s contraint to PILOT_SPEED_UP(DOWN)/2.
+        float speed_up = (g.pilot_speed_up > 125) ? 100 : g.pilot_speed_up*0.8f;
+        float speed_down = (get_pilot_speed_dn() > 125) ? 100 : get_pilot_speed_dn()*0.8f;
+        // constrain down speed based on rangefinder altitude (if available)
+        if (copter.rangefinder_alt_ok()) {
+            int32_t rng_alt = get_alt_above_ground_cm();
+            if (rng_alt < 250) {
+                speed_down = 0.0f;  // try to avoid crash
+            } else if (rng_alt < g2.land_alt_low) {
+                speed_down = (abs(g.land_speed) > 0) ? abs(g.land_speed) : speed_down*0.7; // slow down
+            }
+        }
+        float pilot_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
+        pilot_climb_rate = constrain_float(pilot_climb_rate, -speed_down, speed_up);
+        wp_nav->set_alt_stick_mix(pilot_climb_rate, G_Dt);
+    }
 
     // WP_Nav has set the vertical position control targets
     // run the vertical position controller and set output throttle
