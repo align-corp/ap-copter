@@ -999,27 +999,19 @@ void ModeAuto::wp_run()
 
     // stick mixing for altitude
     if (!copter.failsafe.radio && ((copter.g2.auto_options & (uint32_t)Options::AltitudeStickMix) != 0)) {
-        // constrain speeds to 1 m/s. If PILOT_SPEED_UP(DOWN) is less than 1 m/s constrain to PILOT_SPEED_UP(DOWN).
-        float speed_up = (g.pilot_speed_up > 125) ? 100 : g.pilot_speed_up*0.8f;
+        // constrain speed down to 1 m/s. If PILOT_SPEED_DOWN is less than 1 m/s constrain to PILOT_SPEED_DOWN*0.8
         float speed_down = (get_pilot_speed_dn() > 125) ? 100 : get_pilot_speed_dn()*0.8f;
-        // constrain down speed based on rangefinder altitude (if available)
-        bool rangefinder_override = false;
+        // constrain speed down based on rangefinder altitude (if available)
         if (copter.rangefinder_alt_ok()) {
             int32_t rng_alt = get_alt_above_ground_cm();
-            if (rng_alt < 200) {
-                rangefinder_override = true; // climb at PILOT_SPEED_UP to avoid crash (it should never get here)
-            }
-            else if (rng_alt < 250) {
-                speed_down = 0.0f;  // do not allow descend
+            if (rng_alt < 250) {
+                speed_down = 0.0f;  // do not allow negative speed
             } else if (rng_alt < g2.land_alt_low) {
                 speed_down = (abs(g.land_speed) > 0) ? abs(g.land_speed) : speed_down*0.7; // slow down
             }
         }
-        float pilot_climb_rate = g.pilot_speed_up;
-        if (!rangefinder_override) {
-            pilot_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
-            pilot_climb_rate = constrain_float(pilot_climb_rate, -speed_down, speed_up);
-        }
+        float pilot_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
+        pilot_climb_rate = constrain_float(pilot_climb_rate, -speed_down, g.pilot_speed_up);
         wp_nav->set_alt_stick_mix(pilot_climb_rate, G_Dt);
     }
 
