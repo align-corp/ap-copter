@@ -1,0 +1,18 @@
+include ../AP6v2/hwdef.dat
+
+# defines
+define ARMING_DELAY_SEC 0.5f
+
+# PCU on Serial 4
+undef HAL_SERIAL4_PROTOCOL
+define HAL_SERIAL4_PROTOCOL SerialProtocol_PCU
+
+define ALIGN_FRAME ALIGN_M460_DEV
+
+# undef USB setup for easy access with QGC
+undef USB_VENDOR
+undef USB_PRODUCT
+undef USB_STRING_MANUFACTURER
+
+# default parameters
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M460.param'

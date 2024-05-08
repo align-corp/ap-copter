@@ -1,0 +1,10 @@
+include ../AP6v2/hwdef.dat
+
+# defines
+define ARMING_DELAY_SEC 0.5f
+define PARAM_READONLY 1
+
+define ALIGN_FRAME ALIGN_M4T12
+
+# default parameters
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M4T12_RW.param'
