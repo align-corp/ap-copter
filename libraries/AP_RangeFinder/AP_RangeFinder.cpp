@@ -52,6 +52,7 @@
 #include "AP_RangeFinder_USD1_CAN.h"
 #include "AP_RangeFinder_Benewake_CAN.h"
 #include "AP_RangeFinder_Lua.h"
+#include "AP_RangeFinder_HYDS.h"
 
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_Logger/AP_Logger.h>
@@ -532,6 +533,12 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
     case Type::Lua_Scripting:
 #if AP_SCRIPTING_ENABLED
         _add_backend(new AP_RangeFinder_Lua(state[instance], params[instance]), instance);
+#endif
+        break;
+
+    case Type::HYDS:
+#if AP_RANGEFINDER_HYDS_ENABLED
+        serial_create_fn = AP_RangeFinder_TeraRanger_Serial::create;
 #endif
         break;
 

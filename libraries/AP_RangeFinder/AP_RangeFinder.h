@@ -103,6 +103,7 @@ public:
         Benewake_CAN = 34,
         TeraRanger_Serial = 35,
         Lua_Scripting = 36,
+        HYDS = 70,
         SIM = 100,
     };
 
