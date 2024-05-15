@@ -29,8 +29,7 @@ extern const AP_HAL::HAL& hal;
 #define FRAME_FUNCTION 0x03
 #define PAYLOAD_LENGTH 0x04
 #define FRAME_LENGTH 9
-#define DIST_MAX_CM 1300
-#define OUT_OF_RANGE_ADD_CM 1000
+#define OUT_OF_RANGE_ADD_CM 100
 
 // TODO: format of serial packets received from rangefinder
 //
@@ -95,16 +94,16 @@ bool AP_RangeFinder_HYDS::get_reading(float &reading_m)
             linebuf[linebuf_len++] = c;
             if (linebuf_len == FRAME_LENGTH) {
                 // calculate CRC16
-                uint16_t crc_calculated = calc_crc_modbus(linebuf,FRAME_LENGTH-2);
-                uint16_t crc = ((uint16_t)linebuf[FRAME_LENGTH-2] << 8) | linebuf[FRAME_LENGTH-1];
+                uint16_t crc_calculated = calc_crc_modbus(linebuf, FRAME_LENGTH-2);
+                uint16_t crc = ((uint16_t)linebuf[FRAME_LENGTH-1] << 8) | linebuf[FRAME_LENGTH-2];
                 // if crc matches, extract contents
                 if (crc_calculated == crc) {
                     // calculate distance
                     uint16_t dist_mm = ((uint16_t)linebuf[3] << 8) | linebuf[4];
                     distance_received = true;
-                    if (dist_mm == 0) {
+                    if (dist_mm == 0 || dist_mm > HYDS_DIST_MAX_CM * 10) {
                         // reading out of range
-                        reading_m = DIST_MAX_CM + OUT_OF_RANGE_ADD_CM;
+                        reading_m = (HYDS_DIST_MAX_CM + OUT_OF_RANGE_ADD_CM) * 0.01f;
                     } else {
                         // reading is good
                         reading_m = dist_mm * 0.001f;

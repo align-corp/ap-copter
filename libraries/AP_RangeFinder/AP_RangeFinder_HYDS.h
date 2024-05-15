@@ -9,6 +9,9 @@
 
 #if AP_RANGEFINDER_HYDS_ENABLED
 
+#define HYDS_DIST_MAX_CM 1200
+#define HYDS_DIST_MIN_CM 30
+
 class AP_RangeFinder_HYDS : public AP_RangeFinder_Backend_Serial
 {
 
@@ -19,6 +22,8 @@ public:
         AP_RangeFinder_Params &_params) {
         return new AP_RangeFinder_HYDS(_state, _params);
     }
+    int16_t max_distance_cm() const override { return HYDS_DIST_MAX_CM; }
+    int16_t min_distance_cm() const override { return HYDS_DIST_MIN_CM; }
 
 protected:
 

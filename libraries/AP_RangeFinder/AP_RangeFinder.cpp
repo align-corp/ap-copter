@@ -538,7 +538,7 @@ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial_instance)
 
     case Type::HYDS:
 #if AP_RANGEFINDER_HYDS_ENABLED
-        serial_create_fn = AP_RangeFinder_TeraRanger_Serial::create;
+        serial_create_fn = AP_RangeFinder_HYDS::create;
 #endif
         break;
 
