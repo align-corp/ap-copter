@@ -1,3 +1,4 @@
+-- mount-G3P-driver.lua: Align G3P mount/gimbal driver - version 1.2
 local PARAM_TABLE_KEY = 41
 assert(param:add_table(PARAM_TABLE_KEY, "G3P_", 5), "could not add param table")
 assert(param:add_param(PARAM_TABLE_KEY, 1, "DEBUG", 0), "could not add G3P_DEBUG param")
@@ -27,12 +28,15 @@ local MOUNT_RC_RATE = 30
 local MOUNT_RC_EXPO = 1
 local HEADER_SEND = 0x18
 local HEADER_RECEIVE = 0x19
+local MOUNT_CMD_PARAM_SET = 0x01
+local MOUNT_CMD_PARAM_GET = 0x02
 local MOUNT_CMD_ANGLE_SET = 0x03
 local MOUNT_CMD_CALIBRATE = 0x04
 local MOUNT_CMD_ANGLE_REQUEST = 0x05
 local MOUNT_LENGTH_ANGLE_REQUEST = 0x06
 local DV_HEADER = 0xAE
 local DV_HEADER2_SEND = 0xA1
+local DV_HEADER2_RECEIVE = 0xA2
 local DV_CMD1 = 0x00
 local DV_CMD2_LATH = 0xA8
 local DV_CMD2_LATL = 0xA9
@@ -86,7 +90,7 @@ return uret - 0x10000
 end
 end
 function wrap_360(angle)
- local res = math.fmod(angle, 360.0)
+local res = math.fmod(angle, 360.0)
 if res < 0 then
 res = res + 360.0
 end
@@ -150,7 +154,11 @@ if center_rc == nil then
 gcs:send_text(MAV_SEVERITY.CRITICAL, "G3P: set G3P_CENTER_CH with RC centering channel")
 need_reboot = true
 else
-MOUNT_RC_CENTER = center_rc
+MOUNT_RC_CENTER = math.floor(center_rc)
+local center_param_string = "RC" .. MOUNT_RC_CENTER .. "_OPTION"
+if param:get(center_param_string) == 19 then
+param:set(center_param_string, 0)
+end
 end
 local expo_rc = G3P_RC_EXPO:get()
 if expo_rc == nil or expo_rc > 4 then
@@ -170,17 +178,15 @@ need_reboot = true
 end
 uart_gimbal = serial:find_serial(0)
 if uart_gimbal == nil then
-gcs:send_text(3, "G3P: setting SERIAL3_PROTOCOL = 28 for gimbal")
-param:set_and_save("SERIAL3_PROTOCOL", 28)
-param:set_and_save("SERIAL3_BAUD", 115)
+gcs:send_text(3, "G3P: setting SERIAL5_PROTOCOL = 28 for gimbal")
+param:set_and_save("SERIAL5_PROTOCOL", 28)
 need_reboot = true
 end
 if use_camera then
 uart_dv = serial:find_serial(1)
 if uart_dv == nil then
-gcs:send_text(3, "G3P: setting SERIAL4_PROTOCOL = 28 for gimbal")
-param:set_and_save("SERIAL4_PROTOCOL", 28)
-param:set_and_save("SERIAL4_BAUD", 115)
+gcs:send_text(3, "G3P: setting SERIAL7_PROTOCOL = 28 for DV")
+param:set_and_save("SERIAL7_PROTOCOL", 28)
 gcs:send_text(3, "G3P: need reboot")
 return
 end
@@ -371,7 +377,6 @@ packet_to_send[10] = ck_a
 packet_to_send[11] = ck_b
 write_bytes(packet_to_send, #packet_to_send, 0)
 end
-
 function check_picture()
 local pic_count, rec_video, zoom_step, focus_step, auto_focus = mount:get_camera_state(MOUNT_INSTANCE)
 if pic_count and pic_count ~= cam_pic_count then
@@ -451,7 +456,6 @@ elseif des_roll_deg and des_pitch_deg and des_yaw_deg then
 gcs:send_text(MAV_SEVERITY.ERROR, "G3P: set MNT1_RC_RATE parameter")
 return update, 2000
 elseif des_roll_degs and des_pitch_degs and des_yaw_degs then
--- add expo
 des_roll_degs = expo(des_roll_degs)
 des_pitch_degs = expo(des_pitch_degs)
 des_yaw_degs = expo(des_yaw_degs)

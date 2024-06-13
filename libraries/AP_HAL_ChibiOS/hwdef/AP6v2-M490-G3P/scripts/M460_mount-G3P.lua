@@ -1,4 +1,4 @@
--- mount-G3P-driver.lua: Align G3P mount/gimbal driver - version 1.1
+-- mount-G3P-driver.lua: Align G3P mount/gimbal driver - version 1.2
 local PARAM_TABLE_KEY = 41
 assert(param:add_table(PARAM_TABLE_KEY, "G3P_", 5), "could not add param table")
 assert(param:add_param(PARAM_TABLE_KEY, 1, "DEBUG", 0), "could not add G3P_DEBUG param")
@@ -154,7 +154,11 @@ if center_rc == nil then
 gcs:send_text(MAV_SEVERITY.CRITICAL, "G3P: set G3P_CENTER_CH with RC centering channel")
 need_reboot = true
 else
-MOUNT_RC_CENTER = center_rc
+MOUNT_RC_CENTER = math.floor(center_rc)
+local center_param_string = "RC" .. MOUNT_RC_CENTER .. "_OPTION"
+if param:get(center_param_string) == 19 then
+param:set(center_param_string, 0)
+end
 end
 local expo_rc = G3P_RC_EXPO:get()
 if expo_rc == nil or expo_rc > 4 then
