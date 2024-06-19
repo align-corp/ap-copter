@@ -203,15 +203,8 @@ void PS_LightWare_SF45B::update_output_scan(const Location &location)
     for (uint32_t i=0; i<sample_count; i++) {
         const float current_degrees_bf = fmod((last_degrees_bf + degrees_per_sample), 360.0f);
         last_degrees_bf = current_degrees_bf;
-
-
-        const float MAX_RANGE = 16.0f;
         float distance = measure_distance_at_angle_bf(location, current_degrees_bf);
         // ::fprintf(stderr, "SIM: %f=%fm\n", current_degrees_bf, distance);
-        if (distance > MAX_RANGE) {
-            // sensor returns zero for out-of-range
-            distance = 0.0f;
-        }
 
         PackedMessage<DistanceDataCM> packed_distance_data {
             DistanceDataCM(

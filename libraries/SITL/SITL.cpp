@@ -810,9 +810,10 @@ const AP_Param::GroupInfo SIM::var_ins[] = {
     AP_GROUPEND
 };
 
+// Align fyling field
 const Location post_origin {
-    518752066,
-    146487830,
+    242646530,
+    1208164280,
     0,
     Location::AltFrame::ABSOLUTE
 };
@@ -1013,43 +1014,72 @@ float SIM::measure_distance_at_angle_bf(const Location &location, float angle) c
     }
 #endif
 
-    const float radius_cm = 100.0f;
-    float min_dist_cm = 1000000.0;
-    const uint8_t num_post_offset = 10;
-    for (int8_t x=-num_post_offset; x<num_post_offset; x++) {
-        for (int8_t y=-num_post_offset; y<num_post_offset; y++) {
-            Location post_location = post_origin;
-            post_location.offset(x*10+3, y*10+2);
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-            if (postfile != nullptr) {
-                ::fprintf(postfile, "map circle %f %f %f blue\n", post_location.lat*1e-7, post_location.lng*1e-7, radius_cm/100.0);
-            }
-#endif
-            Vector2f post_position_cm;
-            if (!post_location.get_vector_xy_from_origin_NE(post_position_cm)) {
-                // should probably use SITL variables...
-                return 0.0f;
-            }
-            Vector2f intersection_point_cm;
-            if (Vector2f::circle_segment_intersection(ray_endpos_cm, vehicle_pos_cm, post_position_cm, radius_cm, intersection_point_cm)) {
-                float dist_cm = (intersection_point_cm-vehicle_pos_cm).length();
-#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-                if (intersectionsfile != nullptr) {
-                    Location intersection_point = location;
-                    intersection_point.offset(intersection_point_cm.x/100.0,
-                                              intersection_point_cm.y/100.0);
-                    ::fprintf(intersectionsfile,
-                              "map icon %f %f barrell\n",
-                              intersection_point.lat*1e-7,
-                              intersection_point.lng*1e-7);
+float min_dist_cm = 1000000.0;
+
+#ifndef PROXIMITY_LINE
+        const float radius_cm = 100.0f;
+        const uint8_t num_post_offset = 10;
+        for (int8_t x=-num_post_offset; x<num_post_offset; x++) {
+            for (int8_t y=-num_post_offset; y<num_post_offset; y++) {
+                Location post_location = post_origin;
+                post_location.offset(x*10+3, y*10+2);
+    #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                if (postfile != nullptr) {
+                    ::fprintf(postfile, "map circle %f %f %f blue\n", post_location.lat*1e-7, post_location.lng*1e-7, radius_cm/100.0);
                 }
-#endif
-                if (dist_cm < min_dist_cm) {
-                    min_dist_cm = dist_cm;
+    #endif
+                Vector2f post_position_cm;
+                if (!post_location.get_vector_xy_from_origin_NE(post_position_cm)) {
+                    // should probably use SITL variables...
+                    return 0.0f;
+                }
+                Vector2f intersection_point_cm;
+                if (Vector2f::circle_segment_intersection(ray_endpos_cm, vehicle_pos_cm, post_position_cm, radius_cm, intersection_point_cm)) {
+                    float dist_cm = (intersection_point_cm-vehicle_pos_cm).length();
+    #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                    if (intersectionsfile != nullptr) {
+                        Location intersection_point = location;
+                        intersection_point.offset(intersection_point_cm.x/100.0,
+                                                intersection_point_cm.y/100.0);
+                        ::fprintf(intersectionsfile,
+                                "map icon %f %f barrell\n",
+                                intersection_point.lat*1e-7,
+                                intersection_point.lng*1e-7);
+                    }
+    #endif
+                    if (dist_cm < min_dist_cm) {
+                        min_dist_cm = dist_cm;
+                    }
                 }
             }
         }
-    }
+
+#else
+        // user selectable param
+        const float segment_length_cm = 4000.0f;
+        const float segment_offset_y_cm = 3000.0f;
+
+        const Vector2f point_a_segment_offset_cm(segment_length_cm/2, segment_offset_y_cm);
+        const Vector2f point_b_segment_offset_cm(-segment_length_cm/2, segment_offset_y_cm);
+    #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                if (postfile != nullptr) {
+                    // set MAVProxy to test obstacle avoidance
+                    ::fprintf(postfile, "module load graph\nmodule load map\nmodule load horizon\nrc 3 1000\nloiter\ngraph DISTANCE_SENSOR[10].current_distance\n");
+                    for (int8_t x = -segment_length_cm/200; x < segment_length_cm/200; x++)
+                    {
+                        Location post_location = post_origin;
+                        post_location.offset(x, segment_offset_y_cm/100);
+                       ::fprintf(postfile, "map icon %f %f\n", post_location.lat*1e-7, post_location.lng*1e-7);
+                    }
+                }
+    #endif
+        if (angle < 10.0f || angle > 350.0f) {
+            min_dist_cm = Vector2f::closest_distance_between_line_and_point(point_a_segment_offset_cm, point_b_segment_offset_cm, vehicle_pos_cm);
+        } else {
+            min_dist_cm = 1000000.0;
+        }
+#endif
+    
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if (postfile != nullptr) {
         fclose(postfile);
