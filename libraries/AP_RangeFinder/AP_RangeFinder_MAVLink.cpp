@@ -71,6 +71,10 @@ void AP_RangeFinder_MAVLink::update(void)
     if (AP_HAL::millis() - state.last_reading_ms > AP_RANGEFINDER_MAVLINK_TIMEOUT_MS) {
         set_status(RangeFinder::Status::NoData);
         state.distance_m = 0.0f;
+    } else if (distance_cm == 0) {
+        // set out of range high if the rangefinder reports exactly 0 (comply with cheap chinese lidar)
+        set_status(RangeFinder::Status::OutOfRangeHigh);
+        state.distance_m = params.max_distance_cm * 0.01f + 1.0f;
     } else {
         state.distance_m = distance_cm * 0.01f;
         update_status();
