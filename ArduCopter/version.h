@@ -6,7 +6,7 @@
 
 #include "ap_version.h"
 
-#define THISFIRMWARE "ArduCopter V4.4.0, Align V1.1.3"
+#define THISFIRMWARE "ArduCopter V4.4.0, Align V1.2.0"
 
 // the following line is parsed by the autotest scripts
 #define FIRMWARE_VERSION 4,4,0,FIRMWARE_VERSION_TYPE_OFFICIAL
@@ -19,8 +19,8 @@
 
 // Align version 
 #define MIDDLE_MAJOR 1
-#define MIDDLE_MINOR 1
-#define MIDDLE_PATCH 3
+#define MIDDLE_MINOR 2
+#define MIDDLE_PATCH 0
 #define MIDDLE_TYPE FIRMWARE_VERSION_TYPE_DEV
 
 #include <AP_Common/AP_FWVersionDefine.h>
