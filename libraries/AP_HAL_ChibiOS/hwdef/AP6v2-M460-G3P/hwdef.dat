@@ -11,4 +11,4 @@ define HAL_SERIAL4_PROTOCOL SerialProtocol_PCU
 define ALIGN_FRAME ALIGN_M460_G3P
 
 # default parameters
-env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M460_RW.param'
+env DEFAULT_PARAMETERS 'Tools/Frame_params/Align_M460_RW_yaw180.param'
