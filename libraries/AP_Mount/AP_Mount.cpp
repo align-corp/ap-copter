@@ -13,6 +13,7 @@
 #include "AP_Mount_Gremsy.h"
 #include "AP_Mount_Siyi.h"
 #include "AP_Mount_Scripting.h"
+#include "AP_Mount_G3P.h"
 #include <stdio.h>
 #include <AP_Math/location.h>
 #include <SRV_Channel/SRV_Channel.h>
@@ -125,6 +126,13 @@ void AP_Mount::init()
             _backends[instance] = new AP_Mount_Scripting(*this, _params[instance], instance);
             _num_instances++;
 #endif // HAL_MOUNT_SCRIPTING_ENABLED
+
+#if HAL_MOUNT_G3P_ENABLED
+        // check for Align G3P gimbal
+        } else if (mount_type == Mount_Type_G3P) {
+            _backends[instance] = new AP_Mount_G3P(*this, _params[instance], instance);
+            _num_instances++;
+#endif // HAL_MOUNT_G3P_ENABLED
 
         }
 
