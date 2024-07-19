@@ -42,6 +42,7 @@ class AP_Mount_SToRM32_serial;
 class AP_Mount_Gremsy;
 class AP_Mount_Siyi;
 class AP_Mount_Scripting;
+class AP_Mount_G3P;
 
 /*
   This is a workaround to allow the MAVLink backend access to the
@@ -60,6 +61,7 @@ class AP_Mount
     friend class AP_Mount_Gremsy;
     friend class AP_Mount_Siyi;
     friend class AP_Mount_Scripting;
+    friend class AP_Mount_G3P;
 
 public:
     AP_Mount();
@@ -84,6 +86,7 @@ public:
         Mount_Type_BrushlessPWM = 7,    /// Brushless (stabilized) gimbal using PWM protocol
         Mount_Type_Siyi = 8,            /// Siyi gimbal using custom serial protocol
         Mount_Type_Scripting = 9,       /// Scripting gimbal driver
+        Mount_Type_G3P = 30,            /// Align G3P gimbal driver
     };
 
     // init - detect and initialise all mounts
