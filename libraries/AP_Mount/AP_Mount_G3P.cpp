@@ -441,6 +441,11 @@ void AP_Mount_G3P::send_target_angles(float pitch_rad, float yaw_rad, bool yaw_i
 
     // send calculated rates
     send_target_rates(pitch_rate_rads, 0, yaw_rate_rads);
+
+    // switch back to rate mode when desired angle is reached to prevent 2 position controller interference
+    if (fabsf(pitch_err_rad) < 0.007f && fabsf(yaw_err_rad) < 0.007f) {
+        set_mode(MAV_MOUNT_MODE_RC_TARGETING);
+    }
 }
 
 void AP_Mount_G3P::center_gimbal()
