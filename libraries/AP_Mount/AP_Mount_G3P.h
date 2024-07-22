@@ -43,8 +43,8 @@
 #define AP_MOUNT_G3P_PACKETLEN_MIN  5      // minimum number of bytes in a packet.  this is a packet with no data bytes
 #define AP_MOUNT_G3P_DATALEN_MAX   (AP_MOUNT_G3P_PACKETLEN_MAX-AP_MOUNT_G3P_PACKETLEN_MIN) // max bytes for data portion of packet
 #define AP_MOUNT_G3P_MSG_BUF_DATA_START 3  // data starts at this byte in _msg_buf
-#define AP_MOUNT_G3P_PITCH_P       600    // pitch controller P gain (converts pitch angle error to target rate)
-#define AP_MOUNT_G3P_YAW_P         600    // yaw controller P gain (converts yaw angle error to target rate)
+#define AP_MOUNT_G3P_PITCH_P       20    // pitch controller P gain (converts pitch angle error to target rate)
+#define AP_MOUNT_G3P_YAW_P         20    // yaw controller P gain (converts yaw angle error to target rate)
 
 // DV bytes
 #define AP_MOUNT_DV_HEADER              0xAE
