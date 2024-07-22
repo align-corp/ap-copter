@@ -6,7 +6,7 @@
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_GPS/AP_GPS.h>
  
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
 #include <stdio.h>
 #endif
 
@@ -230,7 +230,7 @@ void AP_Mount_G3P::read_incoming_packets()
                 // successfully received a message, do something with it
                 process_packet();
             } else {
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
                 char hexString[_msg_buff_len*3+1];
                 for (uint8_t j = 0; j < _msg_buff_len; ++j) {
                     snprintf(hexString + (j * 3), 4, "%02X ", _msg_buff[j]);
@@ -254,7 +254,7 @@ void AP_Mount_G3P::read_incoming_packets()
 // process successfully decoded packets held in the _parsed_msg structure
 void AP_Mount_G3P::process_packet()
 {
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
     // flag to warn of unexpected data buffer length
     bool unexpected_len = false;
 #endif
@@ -264,7 +264,7 @@ void AP_Mount_G3P::process_packet()
 
     case AP_MOUNT_G3P_CMD_ANGLE_REQUEST: {
         if (_parsed_msg.data_bytes_received != AP_MOUNT_G3P_LENGTH_ANGLE_REQUEST) {
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
             unexpected_len = true;
 #endif
             break;
@@ -277,13 +277,13 @@ void AP_Mount_G3P::process_packet()
     }
 
     default:
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
         debug("Unhandled CmdId:%u", (unsigned)_parsed_msg.command_id);
 #endif
         break;
     }
 
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
     // handle unexpected data buffer length
     if (unexpected_len) {
         debug("CmdId:%u unexpected len:%u", (unsigned)_parsed_msg.command_id, (unsigned)_parsed_msg.data_bytes_received);
@@ -301,7 +301,7 @@ bool AP_Mount_G3P::send_packet_gimbal(uint8_t cmd_id, const uint8_t* databuff, u
     // calculate and sanity check packet size
     const uint16_t packet_size = AP_MOUNT_G3P_PACKETLEN_MIN + databuff_len;
 
-#if AP_MOUNT_G3P_DEBUG
+#ifdef AP_MOUNT_G3P_DEBUG
     if (packet_size > AP_MOUNT_G3P_PACKETLEN_MAX) {
         debug("send_packet data buff too large");
         return false;
