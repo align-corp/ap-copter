@@ -135,7 +135,7 @@ private:
 
     // send target pitch and yaw rates to gimbal
     // yaw_is_ef should be true if yaw_rads target is an earth frame rate, false if body_frame
-    void send_target_rates(float pitch_degs, float roll_degs, float yaw_degs);
+    void send_target_rates(float pitch_rads, float roll_rads, float yaw_rads);
 
     // send target pitch and yaw angles to gimbal
     // yaw_is_ef should be true if yaw_rad target is an earth frame angle, false if body_frame

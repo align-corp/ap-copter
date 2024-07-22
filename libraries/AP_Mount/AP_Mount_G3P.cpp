@@ -80,7 +80,7 @@ void AP_Mount_G3P::update()
                 send_target_angles(mavt_target.angle_rad.pitch, mavt_target.angle_rad.yaw, mavt_target.angle_rad.yaw_is_ef);
                 break;
             case MountTargetType::RATE:
-                send_target_rates(mavt_target.rate_rads.pitch, mavt_target.rate_rads.yaw, mavt_target.rate_rads.yaw_is_ef);
+                send_target_rates(mavt_target.rate_rads.pitch, mavt_target.rate_rads.roll, mavt_target.rate_rads.yaw);
                 break;
             }
             break;
@@ -90,7 +90,7 @@ void AP_Mount_G3P::update()
             // update targets using pilot's rc inputs
             MountTarget rc_target {};
             if (get_rc_rate_target(rc_target)) {
-                send_target_rates(rc_target.pitch, rc_target.yaw, rc_target.yaw_is_ef);
+                send_target_rates(rc_target.pitch, rc_target.roll, rc_target.yaw);
             } else if (get_rc_angle_target(rc_target)) {
                 send_target_angles(rc_target.pitch, rc_target.yaw, rc_target.yaw_is_ef);
             }
@@ -396,12 +396,12 @@ bool AP_Mount_G3P::send_packet_dv(uint8_t cmd_id1, uint8_t cmd_id2, uint8_t data
 }
 
 // send target pitch and yaw rates to gimbal
-void AP_Mount_G3P::send_target_rates(float pitch_degs, float roll_degs, float yaw_degs)
+void AP_Mount_G3P::send_target_rates(float pitch_rads, float roll_rads, float yaw_rads)
 {
     //TODO: constrain rate
-    int16_t yaw_strange = floorf(yaw_degs*182.0444+0.5);
-    int16_t roll_strange = floorf(roll_degs*182.0444+0.5);
-    int16_t pitch_strange = floorf(pitch_degs*182.0444+0.5);
+    int16_t yaw_strange = floorf(yaw_rads*10430.376f+0.5f);
+    int16_t roll_strange = floorf(roll_rads*10430.376f+0.5f);
+    int16_t pitch_strange = floorf(pitch_rads*10430.376f+0.5f);
     const uint8_t yaw_roll_pitch_rate[] = { HIGHBYTE(yaw_strange),
                                             LOWBYTE(yaw_strange),
                                             HIGHBYTE(roll_strange),
@@ -432,23 +432,15 @@ void AP_Mount_G3P::send_target_angles(float pitch_rad, float yaw_rad, bool yaw_i
 
     // use simple P controller to convert pitch angle error (in radians) to a target rate scalar (-100 to +100)
     const float pitch_err_rad = (pitch_rad - _current_angle_rad.y);
-    float pitch_rate_degs = constrain_float(pitch_err_rad * AP_MOUNT_G3P_PITCH_P, -120, 120);
+    float pitch_rate_rads = constrain_float(pitch_err_rad * AP_MOUNT_G3P_PITCH_P, -2.0f, 2.0f);
 
     // convert yaw angle to body-frame the use simple P controller to convert yaw angle error to a target rate scalar (-100 to +100)
     const float yaw_bf_rad = yaw_is_ef ? wrap_PI(yaw_rad - AP::ahrs().yaw) : yaw_rad;
     const float yaw_err_rad = (yaw_bf_rad - _current_angle_rad.z);
-    float yaw_rate_degs = constrain_float(yaw_err_rad * AP_MOUNT_G3P_YAW_P, -120, 120);
-
-    // // constrain minimum output
-    // if (fabsf(pitch_rate_degs) < 6 ) {
-    //     pitch_rate_degs = constrain_float(pitch_rate_degs, -6, 6);
-    // }
-    // if (fabsf(yaw_rate_degs) < 6 ) {
-    //     yaw_rate_degs = constrain_float(yaw_rate_degs, -6, 6);
-    // }
+    float yaw_rate_rads = constrain_float(yaw_err_rad * AP_MOUNT_G3P_YAW_P, -2.0f, 2.0f);
 
     // send calculated rates
-    send_target_rates(pitch_rate_degs, 0, yaw_rate_degs);
+    send_target_rates(pitch_rate_rads, 0, yaw_rate_rads);
 }
 
 void AP_Mount_G3P::center_gimbal()
