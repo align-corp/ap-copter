@@ -271,7 +271,7 @@ void AP_Mount_G3P::process_packet()
         }
         _last_current_angle_rad_ms = AP_HAL::millis();
         _current_angle_rad.z = radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+1])/182.0444);   // yaw angle
-        _current_angle_rad.x = radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+2], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+3])/182.0444);  // roll angle
+        _current_angle_rad.x = -radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+2], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+3])/182.0444);  // roll angle
         _current_angle_rad.y = radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+4], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+5])/182.0444);  // pitch angle
         break;
     }
@@ -391,7 +391,7 @@ bool AP_Mount_G3P::send_packet_dv(uint8_t cmd_id1, uint8_t cmd_id2, uint8_t data
 void AP_Mount_G3P::send_target_rates(float pitch_rads, float roll_rads, float yaw_rads)
 {
     //TODO: constrain rate
-    int16_t yaw_strange = floorf(yaw_rads*10430.376f+0.5f);
+    int16_t yaw_strange = -floorf(yaw_rads*10430.376f+0.5f);
     int16_t roll_strange = floorf(roll_rads*10430.376f+0.5f);
     int16_t pitch_strange = floorf(pitch_rads*10430.376f+0.5f);
     const uint8_t yaw_roll_pitch_rate[] = { HIGHBYTE(yaw_strange),
