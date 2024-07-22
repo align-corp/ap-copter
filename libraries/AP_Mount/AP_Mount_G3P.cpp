@@ -6,8 +6,6 @@
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_GPS/AP_GPS.h>
  
-#define AP_MOUNT_G3P_DEBUG 1
-
 #if AP_MOUNT_G3P_DEBUG
 #include <stdio.h>
 #endif
@@ -31,7 +29,6 @@ void AP_Mount_G3P::init()
     _uart_dv = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Gimbal, 1);
     if (_uart != nullptr && _uart_dv != nullptr) {
         _uart->begin((uint32_t)120000);
-        debug("started");
         _initialised = true;
         set_mode((enum MAV_MOUNT_MODE)_params.default_mode.get());
     }
@@ -303,10 +300,13 @@ bool AP_Mount_G3P::send_packet_gimbal(uint8_t cmd_id, const uint8_t* databuff, u
     }
     // calculate and sanity check packet size
     const uint16_t packet_size = AP_MOUNT_G3P_PACKETLEN_MIN + databuff_len;
+
+#if AP_MOUNT_G3P_DEBUG
     if (packet_size > AP_MOUNT_G3P_PACKETLEN_MAX) {
         debug("send_packet data buff too large");
         return false;
     }
+#endif
 
     // check for sufficient space in outgoing buffer
     if (_uart->txspace() < packet_size) {
@@ -380,14 +380,6 @@ bool AP_Mount_G3P::send_packet_dv(uint8_t cmd_id1, uint8_t cmd_id2, uint8_t data
 
     // END
     send_buff[send_buff_ofs++] = AP_MOUNT_DV_END;
-
-// #ifdef debug
-//     char hexString[AP_MOUNT_DV_PACKETLEN*3+1];
-//     for (uint8_t j = 0; j < AP_MOUNT_DV_PACKETLEN; ++j) {
-//         snprintf(hexString + (j * 3), 4, "%02x ", send_buff[j]);
-//     }
-//     debug("DV array send: %s", hexString);
-// #endif
 
     // send packet
     _uart_dv->write(send_buff, send_buff_ofs);
