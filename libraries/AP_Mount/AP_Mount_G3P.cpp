@@ -270,8 +270,8 @@ void AP_Mount_G3P::process_packet()
             break;
         }
         _last_current_angle_rad_ms = AP_HAL::millis();
-        _current_angle_rad.z = radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+1])/182.0444);   // yaw angle
-        _current_angle_rad.x = -radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+2], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+3])/182.0444);  // roll angle
+        _current_angle_rad.z = -radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+1])/182.0444);   // yaw angle
+        _current_angle_rad.x = radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+2], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+3])/182.0444);  // roll angle
         _current_angle_rad.y = radians((int16_t)UINT16_VALUE(_msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+4], _msg_buff[AP_MOUNT_G3P_MSG_BUF_DATA_START+5])/182.0444);  // pitch angle
         break;
     }
