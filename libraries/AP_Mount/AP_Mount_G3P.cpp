@@ -18,7 +18,7 @@
 extern const AP_HAL::HAL& hal;
 const AP_GPS &gps = AP::gps();
 
-#ifdef G3P_DEBUGGING
+#ifdef AP_MOUNT_G3P_DEBUG
 #define debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); } while(0)
 #else
 #define debug(fmt, args ...)
