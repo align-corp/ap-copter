@@ -28,6 +28,9 @@ public:
     // true if this controller is controlling vehicle
     bool active() const;
 
+    // true if vehicle need to stop before/after pivot turn
+    bool active_stop() const;
+
     // checks if pivot turns should be activated or deactivated
     // force_active should be true if the caller wishes to trigger the start of a pivot turn regardless of the heading error
     void check_activation(float desired_heading_deg, bool force_active = false);
@@ -37,7 +40,7 @@ public:
     bool would_activate(float yaw_change_deg) const WARN_IF_UNUSED;
 
     // forcibly deactivate this controller
-    void deactivate() { _active = false; };
+    void deactivate();
 
     // get turn rate (in rad/sec)
     // desired heading should be the heading towards the next waypoint in degrees
@@ -74,5 +77,7 @@ private:
     // local variables
     bool _enabled;                  // true if vehicle can pivot
     bool _active;                   // true if vehicle is currently pivoting
+    bool _stop;
     uint32_t _delay_start_ms;       // system time when post-turn delay started
+    uint8_t _state = 0;
 };

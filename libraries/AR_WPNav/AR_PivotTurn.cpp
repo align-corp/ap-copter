@@ -17,6 +17,7 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
 #include "AR_PivotTurn.h"
+#include <GCS_MAVLink/GCS.h>
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
 #include <stdio.h>
@@ -101,12 +102,18 @@ bool AR_PivotTurn::active() const
     return _enabled && _active;
 }
 
+// true if update has been called recently
+bool AR_PivotTurn::active_stop() const
+{
+    return _stop;
+}
+
 // checks if pivot turns should be activated or deactivated
 // force_active should be true if the caller wishes to trigger the start of a pivot turn regardless of the heading error
 void AR_PivotTurn::check_activation(float desired_heading_deg, bool force_active)
 {
     // check cases where we clearly cannot use pivot steering
-    if (!_enabled || (_angle <= AR_PIVOT_ANGLE_ACCURACY)) {
+    if (!_enabled || (_angle <= AR_PIVOT_ANGLE_ACCURACY_DEFAULT)) {
         _active = false;
         return;
     }
@@ -114,25 +121,51 @@ void AR_PivotTurn::check_activation(float desired_heading_deg, bool force_active
     // calc yaw error in degrees
     const float yaw_error = fabsf(wrap_180(desired_heading_deg - (AP::ahrs().yaw_sensor * 0.01f)));
 
-    // if error is larger than _pivot_angle start pivot steering
-    if (yaw_error > _angle || force_active) {
-        _active = true;
-        _delay_start_ms = 0;
-        return;
-    }
-
+    // get time
     uint32_t now_ms = AP_HAL::millis();
 
-    // if within 5 degrees of the target heading, set start time of pivot steering
-    if (_active && (yaw_error < AR_PIVOT_ANGLE_ACCURACY) && (_delay_start_ms == 0)) {
-        _delay_start_ms = now_ms;
-    }
+    switch (_state)
+    {
+    case 0: //TODO: enum for states
+        // if error is larger than _pivot_angle start pivot steering
+        if (yaw_error > _angle || force_active) {
+            _active = true;
+            _stop = true;
+            _delay_start_ms = now_ms;
+            _state = 1;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Pivot: state to 1");
+        }
+        break;
+    case 1:
+        // delay in
+        if (now_ms - _delay_start_ms >= get_delay_in_duration_ms()) {
+            _stop = false;
+            _state = 2;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Pivot: state to 2");
+        }
+        break;
 
-    // exit pivot steering after the time set by pivot_delay has elapsed
-    if ((_delay_start_ms > 0) &&
-        (now_ms - _delay_start_ms) >= get_delay_duration_ms()) {
-        _active = false;
-        _delay_start_ms = 0;
+    case 2:
+        // if within 5 degrees of the target heading, set start time of pivot steering
+        if (yaw_error < get_pivot_accuracy_deg()) {
+            _delay_start_ms = now_ms;
+            _stop = true;
+            _state = 3;
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Pivot: state to 3");
+        }
+        break;
+
+    case 3:
+        // exit pivot steering after the time set by pivot_delay has elapsed
+        if (now_ms - _delay_start_ms >= get_delay_duration_ms()) {
+            deactivate();
+            GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Pivot: reset state to 0");
+        }
+        break;
+    
+    default:
+        GCS_SEND_TEXT(MAV_SEVERITY_ERROR, "Pivot: default state");
+        break;
     }
 }
 
@@ -147,6 +180,12 @@ bool AR_PivotTurn::would_activate(float yaw_change_deg) const
 
     // return true if yaw change is larger than _pivot_angle
     return fabsf(wrap_180(yaw_change_deg)) > _angle;
+}
+
+void AR_PivotTurn::deactivate() 
+{ 
+    _active = false;
+    _state = 0;
 }
 
 // get turn rate (in rad/sec)
