@@ -141,7 +141,7 @@ void AR_PivotTurn::check_activation(float desired_heading_deg, bool force_active
 bool AR_PivotTurn::would_activate(float yaw_change_deg) const
 {
     // check cases where we clearly cannot use pivot steering
-    if (!_enabled || (_angle <= AR_PIVOT_ANGLE_ACCURACY)) {
+    if (!_enabled || (_angle <= get_pivot_accuracy_deg())) {
         return false;
     }
 
