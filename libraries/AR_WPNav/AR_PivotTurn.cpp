@@ -24,11 +24,11 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define AR_PIVOT_TIMEOUT_MS     100 // pivot controller timesout and reset target if not called within this many milliseconds
-#define AR_PIVOT_ANGLE_DEFAULT  60  // default PIVOT_ANGLE parameter value
-#define AR_PIVOT_ANGLE_ACCURACY 5   // vehicle will pivot to within this many degrees of destination
-#define AR_PIVOT_RATE_DEFAULT   60  // default PIVOT_RATE parameter value
-#define AR_PIVOT_DELAY_DEFAULT  0   // default PIVOT_DELAY parameter value
+#define AR_PIVOT_TIMEOUT_MS             100 // pivot controller timesout and reset target if not called within this many milliseconds
+#define AR_PIVOT_ANGLE_DEFAULT          60  // default PIVOT_ANGLE parameter value
+#define AR_PIVOT_ANGLE_ACCURACY_DEFAULT 5   // vehicle will pivot to within this many degrees of destination
+#define AR_PIVOT_RATE_DEFAULT           60  // default PIVOT_RATE parameter value
+#define AR_PIVOT_DELAY_DEFAULT          0   // default PIVOT_DELAY parameter value
 
 const AP_Param::GroupInfo AR_PivotTurn::var_info[] = {
 
@@ -57,7 +57,25 @@ const AP_Param::GroupInfo AR_PivotTurn::var_info[] = {
     // @Range: 0 60
     // @Increment: 0.1
     // @User: Standard
-    AP_GROUPINFO("DELAY", 3, AR_PivotTurn, _delay, AR_PIVOT_DELAY_DEFAULT),
+    AP_GROUPINFO("DELAY", 3, AR_PivotTurn, _delay, AR_PIVOT_DELAY_DEFAULT),    // @Param: PIVOT_ACCURACY
+    
+    // @Param: ACC
+    // @DisplayName: Accuracy of pivot turn
+    // @Description: Angle error to declare pivot turn complete 
+    // @Units: deg
+    // @Range: 1 10
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("ACC", 4, AR_PivotTurn, _accuracy, AR_PIVOT_ANGLE_ACCURACY_DEFAULT),
+
+    // @Param: DEL_IN
+    // @DisplayName: Delay after pivot turn
+    // @Description: Waiting time after pivot turn
+    // @Units: s
+    // @Range: 0 60
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("DEL_IN", 5, AR_PivotTurn, _delay_in, AR_PIVOT_DELAY_DEFAULT),
 
     AP_GROUPEND
 };
@@ -149,4 +167,16 @@ float AR_PivotTurn::get_turn_rate_rads(float desired_heading_deg, float dt)
 uint32_t AR_PivotTurn::get_delay_duration_ms() const
 {
     return constrain_float(_delay.get(), 0.0f, 60.0f) * 1000;
+}
+
+// return post-turn delay duration in milliseconds
+uint32_t AR_PivotTurn::get_delay_in_duration_ms() const
+{
+    return constrain_float(_delay_in.get(), 0.0f, 60.0f) * 1000;
+}
+
+// return post-turn delay duration in milliseconds
+float AR_PivotTurn::get_pivot_accuracy_deg() const
+{
+    return constrain_float(_accuracy.get(), 0.0f, 20.0f);
 }
