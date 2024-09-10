@@ -145,6 +145,7 @@ protected:
     // parameters
     AP_Float _speed_max;            // target speed between waypoints in m/s
     AP_Float _radius;               // distance in meters from a waypoint when we consider the waypoint has been reached
+    AP_Float _radius_min;           // distance in meters from a waypoint when we consider the waypoint has been reached
     AR_PivotTurn _pivot;            // pivot turn controller
     AP_Float _accel_max;            // max acceleration.  If zero then attitude controller's specified max accel is used
     AP_Float _jerk_max;             // max jerk (change in acceleration).  If zero then value is same as accel_max
@@ -164,6 +165,8 @@ protected:
 
     // variables held in vehicle code (for now)
     float _turn_radius;             // vehicle turn radius in meters
+    float _radius_actual;             // vehicle turn radius in meters
+
 
     // variables for navigation
     uint32_t _last_update_ms;       // system time of last call to update
@@ -194,4 +197,5 @@ protected:
     // variables for reporting
     float _distance_to_destination; // distance from vehicle to final destination in meters
     bool _reached_destination;      // true once the vehicle has reached the destination
+    bool _next_wp_near;
 };

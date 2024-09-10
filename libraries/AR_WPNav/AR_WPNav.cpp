@@ -84,6 +84,15 @@ const AP_Param::GroupInfo AR_WPNav::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("JERK", 10, AR_WPNav, _jerk_max, 0),
 
+    // @Param: RADIUS_MIN
+    // @DisplayName: Waypoint radius minimum
+    // @Description: Same as WP_RADIUS, applied when two waypoints are nearer than 1.5 m 
+    // @Units: m
+    // @Range: 0 100
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("RADIUS_MIN", 11, AR_WPNav, _radius_min, AR_WPNAV_RADIUS_DEFAULT),
+
     AP_GROUPEND
 };
 
@@ -224,6 +233,16 @@ bool AR_WPNav::set_desired_location(const Location& destination, Location next_d
     _reached_destination = false;
 
     update_distance_and_bearing_to_destination();
+    
+    // use WP_RADIUS_NEAR if the distance of waypoint is less than 1.5 m
+    // use WP_RADIUS_NEAR if the distance of waypoint is less than 1.5 m
+    if (_distance_to_destination < 1.5f) {
+        _radius_actual = _radius_min;
+        _next_wp_near = true;
+    } else {
+        _radius_actual = _radius;
+        _next_wp_near = false;
+    }
 
     // check if vehicle should pivot if vehicle stopped at previous waypoint
     // or journey to previous waypoint was interrupted or navigation has just started
@@ -441,8 +460,9 @@ void AR_WPNav::advance_wp_target_along_track(const Location &current_loc, float 
     Vector3f target_vel, target_accel;
 
     // update target position, velocity and acceleration
-    const float wp_radius = MAX(_radius, _turn_radius);
+    const float wp_radius = MAX(_radius_actual, _turn_radius);
     bool s_finished = _scurve_this_leg.advance_target_along_track(_scurve_prev_leg, _scurve_next_leg, wp_radius, _pos_control.get_lat_accel_max(), _fast_waypoint, _track_scalar_dt * dt, target_pos_3d_ftype, target_vel, target_accel);
+    s_finished = true;
 
     // pass new target to the position controller
     init_pos_control_if_necessary();
@@ -456,7 +476,7 @@ void AR_WPNav::advance_wp_target_along_track(const Location &current_loc, float 
             _reached_destination = true;
         } else {
             // regular waypoints also require the vehicle to be within the waypoint radius or past the "finish line"
-            const bool near_wp = current_loc.get_distance(_destination) <= _radius;
+            const bool near_wp = current_loc.get_distance(_destination) <= _radius_actual;
             const bool past_wp = current_loc.past_interval_finish_line(_origin, _destination);
             _reached_destination = near_wp || past_wp;
         }
@@ -484,7 +504,7 @@ void AR_WPNav::update_psc_input_shaping(float dt)
         // calculate position difference between destination and position controller input shaped target
         Vector2p pos_target_diff = pos_target - _pos_control.get_pos_target();
         // vehicle has reached destination when the target is within 1cm of the destination and vehicle is within waypoint radius
-        _reached_destination = (pos_target_diff.length_squared() < sq(0.01)) && (_pos_control.get_pos_error().length_squared() < sq(_radius));
+        _reached_destination = (pos_target_diff.length_squared() < sq(0.01)) && (_pos_control.get_pos_error().length_squared() < sq(_radius_actual));
     }
 }
 
@@ -522,8 +542,8 @@ void AR_WPNav::update_steering_and_speed(const Location &current_loc, float dt)
         _limit_accel = false;
     } else {
         _desired_speed_limited = _pos_control.get_desired_speed();
-        _desired_turn_rate_rads = _pos_control.get_desired_turn_rate_rads();
-        _desired_lat_accel = _pos_control.get_desired_lat_accel();
+        _desired_turn_rate_rads = _next_wp_near ? 0 : _pos_control.get_desired_turn_rate_rads();
+        _desired_lat_accel = _next_wp_near ? 0 : _pos_control.get_desired_lat_accel();
         _limit_accel = true;
     }
 }
