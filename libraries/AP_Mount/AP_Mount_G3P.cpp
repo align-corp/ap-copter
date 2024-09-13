@@ -15,6 +15,11 @@
 #define BYTE3(i) ((uint8_t)(i>>16))
 #define BYTE4(i) ((uint8_t)(i>>24))
 
+// Align location
+#define ALIGN_LAT 242554040     // degE7
+#define ALIGN_LON 1207353010    // degE7
+#define ALIGN_ALT 12345         // cm
+
 extern const AP_HAL::HAL& hal;
 const AP_GPS &gps = AP::gps();
 
@@ -459,20 +464,24 @@ void AP_Mount_G3P::center_gimbal()
 
 void AP_Mount_G3P::send_gps_position()
 {
+    // set Align location as default
+    Location here = Location(ALIGN_LAT, ALIGN_LON, ALIGN_ALT, Location::AltFrame::ABSOLUTE);
     uint8_t instance = gps.primary_sensor();
+    int32_t alt_cm = ALIGN_ALT;
     if (gps.status(instance) >= AP_GPS::GPS_Status::GPS_OK_FIX_3D) {
-        Location here = gps.location(instance);
-        int32_t alt_cm;
-        if (here.get_alt_cm(Location::AltFrame::ABSOLUTE, alt_cm)) {
-            uint16_t alt_dm = constrain_uint16(alt_cm * 0.1, 0, 65535);
-            send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LATH, BYTE4(here.lat), BYTE3(here.lat));
-            send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LATL, BYTE2(here.lat), BYTE1(here.lat));
-            send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LONH, BYTE4(here.lng), BYTE3(here.lng));
-            send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LONL, BYTE2(here.lng), BYTE1(here.lng));
-            send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_ALT, HIGHBYTE(alt_dm), LOWBYTE(alt_dm));
+        // gps location is good, use real coordinates
+        here = gps.location(instance);
+        if (!here.get_alt_cm(Location::AltFrame::ABSOLUTE, alt_cm)) {
+            // alt not available
+            alt_cm = 0;
         }
-
     }
+    uint16_t alt_dm = constrain_uint16(alt_cm * 0.1, 0, 65535);
+    send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LATH, BYTE4(here.lat), BYTE3(here.lat));
+    send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LATL, BYTE2(here.lat), BYTE1(here.lat));
+    send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LONH, BYTE4(here.lng), BYTE3(here.lng));
+    send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_LONL, BYTE2(here.lng), BYTE1(here.lng));
+    send_packet_dv(AP_MOUNT_DV_CMD1, AP_MOUNT_DV_CMD2_ALT, HIGHBYTE(alt_dm), LOWBYTE(alt_dm));
 }
 
 #endif // HAL_MOUNT_G3P_ENABLED
