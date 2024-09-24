@@ -148,7 +148,6 @@ private:
     AP_HAL::UARTDriver *_uart;                      // uart connected to gimbal
     AP_HAL::UARTDriver *_uart_dv;                   // uart connected to DV
     bool _initialised;                              // true once the driver has been initialised
-
     // buffer holding bytes from latest packet
     uint8_t _msg_buff[AP_MOUNT_G3P_PACKETLEN_MAX];
     uint8_t _msg_buff_len;
@@ -170,6 +169,8 @@ private:
     Vector3f _current_angle_rad;                    // current angles in radians received from gimbal (x=roll, y=pitch, z=yaw)
     uint32_t _last_current_angle_rad_ms;            // system time _current_angle_rad was updated
     uint32_t _last_req_current_angle_rad_ms;        // system time that this driver last requested current angle
+    uint32_t _last_coordinates_send_ms;             // system time that this driver last sent the GNSS coordinates to DV
+
 };
 
 #endif // HAL_MOUNT_G3P_ENABLED

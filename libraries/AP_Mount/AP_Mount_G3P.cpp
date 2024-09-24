@@ -10,6 +10,11 @@
 #include <stdio.h>
 #endif
 
+// update rate
+#define AP_MOUNT_G3P_REQUEST_ATTITUDE_MS 50
+#define AP_MOUNT_G3P_SEND_LOCATION_MS 100
+
+
 #define BYTE1(i) ((uint8_t)(i))
 #define BYTE2(i) ((uint8_t)(i>>8))
 #define BYTE3(i) ((uint8_t)(i>>16))
@@ -37,12 +42,17 @@ void AP_Mount_G3P::init()
 
     _uart = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Gimbal, 0);
     _uart_dv = serial_manager.find_serial(AP_SerialManager::SerialProtocol_Gimbal, 1);
-    if (_uart != nullptr && _uart_dv != nullptr) {
+    if (_uart != nullptr) {
         _uart->begin((uint32_t)120000);
         _initialised = true;
         set_mode((enum MAV_MOUNT_MODE)_params.default_mode.get());
     }
 
+    if (_uart_dv != nullptr) {
+        _uart_dv->begin((uint32_t)115200);
+    }
+
+    AP_Mount_Backend::init();
 }
 
 // update mount position - should be called periodically
@@ -56,12 +66,18 @@ void AP_Mount_G3P::update()
     // reading incoming packets from gimbal
     read_incoming_packets();
 
-    // request attitude and update camera position at 20 Hz
     uint32_t now_ms = AP_HAL::millis();
-    if ((now_ms - _last_req_current_angle_rad_ms) >= 50) {
+    
+    // request attitude at 20 Hz
+    if ((now_ms - _last_req_current_angle_rad_ms) >= AP_MOUNT_G3P_REQUEST_ATTITUDE_MS) {
         request_gimbal_attitude();
-        send_gps_position();
         _last_req_current_angle_rad_ms = now_ms;
+    }
+
+    // send GNSS coordinates to DV at 10 Hz (also move the phase to avoid UART noise)
+    if (_uart_dv != nullptr && ((now_ms + (AP_MOUNT_G3P_REQUEST_ATTITUDE_MS / 2) - _last_coordinates_send_ms)) >= AP_MOUNT_G3P_SEND_LOCATION_MS) {
+        send_gps_position();
+        _last_coordinates_send_ms = now_ms;
     }
 
     // update based on mount mode
