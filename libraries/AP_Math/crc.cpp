@@ -315,9 +315,9 @@ static const uint32_t crc32_tab[] = {
 };
 
 
-uint32_t crc_crc32(uint32_t crc, const uint8_t *buf, uint32_t size)
+uint32_t crc_crc32(uint32_t crc, const uint8_t *buf, uint32_t size, uint32_t offset)
 {
-	for (uint32_t i=0; i<size; i++) {
+	for (uint32_t i=offset; i<size; i++) {
 		crc = crc32_tab[(crc ^ buf[i]) & 0xff] ^ (crc >> 8);
 	}
 
