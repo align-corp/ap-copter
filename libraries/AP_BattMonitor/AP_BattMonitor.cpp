@@ -577,6 +577,12 @@ AP_BattMonitor::init()
             case Type::ALIGN_P2:
                 drivers[instance] = new AP_BattMonitor_P2(*this, state[instance], _params[instance]);
                 break;
+            case Type::ALIGN_P2_3S:
+                drivers[instance] = new AP_BattMonitor_P2_3s(*this, state[instance], _params[instance]);
+                break;
+            case Type::ALIGN_P2_BEC:
+                drivers[instance] = new AP_BattMonitor_P2_BEC(*this, state[instance], _params[instance]);
+                break;
 #endif
             case Type::NONE:
             default:

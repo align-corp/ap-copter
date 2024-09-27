@@ -11,7 +11,10 @@
 #include <AP_Arming/AP_Arming.h>
 #endif
 
-#define P2_NOT_HEALTY_MICROS 5000000
+// Broadcast messages timing is completely random, timeout in 15 seconds
+#define P2_NOT_HEALTY_MICROS 15000000
+
+#define AP_BATTERY_P2_DEBUG
 
 #ifdef AP_BATTERY_P2_DEBUG
 #define debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); } while(0)
@@ -26,7 +29,7 @@ void AP_BattMonitor_P2::read()
 {
     const uint32_t tnow = AP_HAL::micros();
 
-    if (_uart != nullptr)
+    if (_uart == nullptr)
     {
         _uart = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_PCU, 0);
         if (_uart != nullptr) {
@@ -63,10 +66,6 @@ void AP_BattMonitor_P2::read()
 
 bool AP_BattMonitor_P2::parse_message()
 {
-    if (_uart == nullptr) {
-        return false;
-    }
-
     // check for bytes on the serial port
     int16_t nbytes = MIN(_uart->available(), 1024U);
 
@@ -141,7 +140,7 @@ bool AP_BattMonitor_P2::parse_message()
 
         case ParseState::WAITING_FOR_PAYLOAD:
             _parsed_msg.data_bytes_received++;
-            if (_parsed_msg.data_bytes_received >= _parsed_msg.data_len) {
+            if (_parsed_msg.data_bytes_received == _parsed_msg.data_len) {
                 _parsed_msg.checksum = 0;
                 _parsed_msg.checksum_bit = 0;
                 _parsed_msg.state = ParseState::WAITING_FOR_CRC;
@@ -149,15 +148,27 @@ bool AP_BattMonitor_P2::parse_message()
             break;
 
         case ParseState::WAITING_FOR_CRC:
-            _parsed_msg.checksum = _parsed_msg.checksum + (b << (_parsed_msg.checksum_bit*8));
+            _parsed_msg.checksum = _parsed_msg.checksum | (b << (_parsed_msg.checksum_bit*8));
             _parsed_msg.checksum_bit++;
             if (_parsed_msg.checksum_bit == 4) {
-                uint32_t checksum = 0;
-                checksum = crc_crc32(checksum, _msg_buff, _parsed_msg.data_len+5, 1);
+                // buffer must have an exact multiple of 4 bytes before pass it for checksum calculation
+                // add 0x00 bytes to fill the array until his length is multiple of 4
+                uint8_t checksum_length = _parsed_msg.data_len+5;
+                uint8_t msg_buffer_checksum_size = checksum_length + ((4 - (checksum_length % 4)) % 4);
+                uint8_t msg_buffer_checksum[msg_buffer_checksum_size];
+                memcpy(msg_buffer_checksum, _msg_buff+1, checksum_length);
+                for (uint8_t j = checksum_length; j < msg_buffer_checksum_size; j++) {
+                    msg_buffer_checksum[j] = 0x00;
+                }
+
+                // calculate checksum
+                uint32_t checksum = 0xFFFFFFFF;
+                checksum = crc_crc32_mpeg2(checksum, msg_buffer_checksum, msg_buffer_checksum_size);
                 if (checksum == _parsed_msg.checksum) {
                     switch (_parsed_msg.packet_id) {
                         case AP_BATT_P2_PACKET_ID_BATT:
                             parse_batt();
+                            debug("Batt parsed: %lu", AP_HAL::micros()/1000000);
                             parsed = true;
                             break;
                         case AP_BATT_P2_PACKET_ID_FUEL:
@@ -168,7 +179,7 @@ bool AP_BattMonitor_P2::parse_message()
                             break;
                     }
                 } else { 
-                    debug("checksum expected:%x, got:%x", checksum, _parsed_msg.checksum);
+                    debug("checksum expected: %x, got: %x", (unsigned int)checksum, (unsigned int)_parsed_msg.checksum);
                 }
                 reset_parser = true;
             }
@@ -176,7 +187,7 @@ bool AP_BattMonitor_P2::parse_message()
         }
 
         // handle reset of parser
-        if (reset_parser) {
+        if (reset_parser || _msg_buff_len == 40) {
             _parsed_msg.state = ParseState::WAITING_FOR_HEADER;
             _msg_buff_len = 0;
             _parsed_msg.data_bytes_received = 0;
@@ -187,16 +198,70 @@ bool AP_BattMonitor_P2::parse_message()
 
 void AP_BattMonitor_P2::parse_batt()
 {
-    _volt = UINT16_VALUE(_msg_buff[6], _msg_buff[7]) * 0.1f; // 3s voltage
-    _volt = UINT16_VALUE(_msg_buff[8], _msg_buff[9]) * 0.1f;
-    _amp = UINT16_VALUE(_msg_buff[20], _msg_buff[21]) * 0.1f;
+    _volt = UINT16_VALUE(_msg_buff[9], _msg_buff[8]) * 0.1f;
+    _amp = UINT16_VALUE(_msg_buff[21], _msg_buff[20]) * 0.1f;
     _temp = (static_cast<float>(static_cast<int16_t>(((_msg_buff[25]) << 8) | (_msg_buff[24]))));
+    
+    // populate shared data
+    _mon.pcu_shared_data.vbatt_3s = UINT16_VALUE(_msg_buff[7], _msg_buff[6]);
+    _mon.pcu_shared_data.vbatt_12s = UINT16_VALUE(_msg_buff[9], _msg_buff[8]);
+    _mon.pcu_shared_data.vbec1 = UINT16_VALUE(_msg_buff[11], _msg_buff[10]);
+    _mon.pcu_shared_data.vbec2 = UINT16_VALUE(_msg_buff[13], _msg_buff[12]);
+    _mon.pcu_shared_data.vbec_out = UINT16_VALUE(_msg_buff[15], _msg_buff[14]);
+    _mon.pcu_shared_data.vfcu = UINT16_VALUE(_msg_buff[17], _msg_buff[16]);
+    _mon.pcu_shared_data.ibatt_3s = UINT16_VALUE(_msg_buff[19], _msg_buff[18]);
+    _mon.pcu_shared_data.ibatt_12s = UINT16_VALUE(_msg_buff[21], _msg_buff[20]);
+    _mon.pcu_shared_data.ibec = UINT16_VALUE(_msg_buff[23], _msg_buff[22]);
+    _mon.pcu_shared_data.motor_temp = static_cast<int16_t>(((_msg_buff[25]) << 8) | (_msg_buff[24]));
+    _mon.pcu_shared_data.fan_on = UINT16_VALUE(_msg_buff[27], _msg_buff[26]) > 0;
+    _mon.pcu_shared_data.micros_batt = AP_HAL::micros();
 }
-
 
 void AP_BattMonitor_P2::parse_fuel()
 {
-    //TODO
+    //TODO: do something with this data. Maybe a fuel flow battery monitor?
+    _mon.pcu_shared_data.fuel_level_full = _msg_buff[6] > 0;
+    _mon.pcu_shared_data.flow_sensor_raw = UINT32_VALUE(_msg_buff[17], _msg_buff[16], _msg_buff[15], _msg_buff[14]);
+}
+
+// read - read the voltage and current
+void AP_BattMonitor_P2_3s::read()
+{
+    _state.healthy = (AP_HAL::micros() - _mon.pcu_shared_data.micros_batt) < P2_NOT_HEALTY_MICROS;
+
+    if (_mon.pcu_shared_data.micros_batt != _last_update_micros) {
+
+        // update time
+        _last_update_micros = _mon.pcu_shared_data.micros_batt;
+        _state.last_time_micros = _mon.pcu_shared_data.micros_batt;
+    
+        // update voltage
+        _state.voltage = _mon.pcu_shared_data.vbatt_3s * 0.1f;
+        
+        // update current
+        _state.current_amps = _mon.pcu_shared_data.ibatt_3s * 0.1f;
+    }
+}
+
+// read - read the voltage and current
+void AP_BattMonitor_P2_BEC::read()
+{
+    _state.healthy = (AP_HAL::micros() - _mon.pcu_shared_data.micros_batt) < P2_NOT_HEALTY_MICROS;
+
+    if (_mon.pcu_shared_data.micros_batt != _last_update_micros) {
+
+        // update time
+        _last_update_micros = _mon.pcu_shared_data.micros_batt;
+        _state.last_time_micros = _mon.pcu_shared_data.micros_batt;
+    
+        // update voltage
+        _state.cell_voltages.cells[0] = _mon.pcu_shared_data.vbec_out * 100;
+        _state.cell_voltages.cells[1] = _mon.pcu_shared_data.vbec1 * 100;
+        _state.cell_voltages.cells[2] = _mon.pcu_shared_data.vbec2 * 100;
+        
+        // update current
+        _state.current_amps = _mon.pcu_shared_data.ibec * 0.1f;
+    }
 }
 
 #endif

@@ -28,42 +28,19 @@ public:
     /// returns true if battery monitor instance provides current info
     bool has_current() const override { return true; };
 
+    /// returns true if battery monitor provides temperature
+    virtual bool has_temperature() const override { return true; }
+
     /// returns true if battery monitor provides consumed energy info
     virtual bool has_consumed_energy() const override { return true; }
 
-    virtual void init(void) override {}
-
-    static const struct AP_Param::GroupInfo var_info[];
-
-    struct AP_BattMonitor_P2_parsed_data
-    {
-        uint16_t vbatt_3s = 0;
-        uint16_t vbatt_12s = 0;
-        uint16_t vbec1 = 0;
-        uint16_t vbec2 = 0;
-        uint16_t vbec_out = 0;
-        uint16_t vfcu = 0;
-        uint16_t ibatt_3s = 0;
-        uint16_t ibatt_12s = 0;
-        uint16_t ibec = 0;
-        uint16_t motor_temp = 0;
-        bool fan_on = false;
-        bool fuel_level_full = false;
-        uint32_t flow_sensor_raw = 0;
-    };
-    
-
 private:
-
     // Receive and parse the message, call at 10 Hz
     bool parse_message();
 
     void parse_batt();
 
     void parse_fuel();
-
-    // Check landing gear PWM
-    uint16_t get_landing_gear();
 
     enum class ParseState : uint8_t {
         WAITING_FOR_HEADER,
@@ -95,5 +72,43 @@ private:
     uint8_t _msg_buff[40];
     uint8_t _msg_buff_len = 0;
 };
+
+class AP_BattMonitor_P2_3s : public AP_BattMonitor_Backend
+{
+public:
+
+    // inherit constructor
+    using AP_BattMonitor_Backend::AP_BattMonitor_Backend;
+
+    /// Read the battery voltage and current.  Should be called at 10hz
+    virtual void read() override;
+
+    /// returns true if battery monitor instance provides current info
+    bool has_current() const override { return true; };
+
+private:
+    uint32_t _last_update_micros = 0;
+};
+
+class AP_BattMonitor_P2_BEC : public AP_BattMonitor_Backend
+{
+public:
+
+    // inherit constructor
+    using AP_BattMonitor_Backend::AP_BattMonitor_Backend;
+
+    /// Read the battery voltage and current.  Should be called at 10hz
+    virtual void read() override;
+
+    // returns true if battery monitor provides individual cell voltages
+    virtual bool has_cell_voltages() const override { return true; }
+
+    /// returns true if battery monitor instance provides current info
+    bool has_current() const override { return true; };
+
+private:
+    uint32_t _last_update_micros = 0;
+};
+
 
 #endif
