@@ -23,6 +23,7 @@
 #include "AP_BattMonitor_AD7091R5.h"
 #include "AP_BattMonitor_Scripting.h"
 #include "AP_BattMonitor_PCU.h"
+#include "AP_BattMonitor_P2.h"
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -570,6 +571,11 @@ AP_BattMonitor::init()
 #if AP_BATTERY_PCU_ENABLED
             case Type::ALIGN_PCU:
                 drivers[instance] = new AP_BattMonitor_PCU(*this, state[instance], _params[instance]);
+                break;
+#endif
+#if AP_BATTERY_P2_ENABLED
+            case Type::ALIGN_P2:
+                drivers[instance] = new AP_BattMonitor_P2(*this, state[instance], _params[instance]);
                 break;
 #endif
             case Type::NONE:
