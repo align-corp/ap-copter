@@ -11,10 +11,8 @@
 #include <AP_Arming/AP_Arming.h>
 #endif
 
-// Broadcast messages timing is completely random, timeout in 15 seconds
-#define P2_NOT_HEALTY_MICROS 15000000
-
-#define AP_BATTERY_P2_DEBUG
+// not healthy in 5 s
+#define P2_NOT_HEALTY_MICROS 5000000
 
 #ifdef AP_BATTERY_P2_DEBUG
 #define debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); } while(0)
@@ -27,8 +25,6 @@ extern const AP_HAL::HAL& hal;
 // read - read the voltage and current
 void AP_BattMonitor_P2::read()
 {
-    const uint32_t tnow = AP_HAL::micros();
-
     if (_uart == nullptr)
     {
         _uart = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_PCU, 0);
@@ -45,21 +41,21 @@ void AP_BattMonitor_P2::read()
         _state.healthy = true;
 
         // get voltage
-        _state.voltage = _volt;
+        _state.voltage = _mon.pcu_shared_data.vbatt_12s * 0.1f;
 
         // get temp
-        _state.temperature = _temp;
+        _state.temperature = _mon.pcu_shared_data.motor_temp;
 
         // calculate time since last current read
-        const uint32_t dt_us = tnow - _state.last_time_micros;
+        const uint32_t dt_us = _mon.pcu_shared_data.micros_batt - _state.last_time_micros;
         // read current
-        _state.current_amps = _amp;
+        _state.current_amps = _mon.pcu_shared_data.ibatt_12s * 0.1f;
         update_consumed(_state, dt_us);
         // record time
-        _state.last_time_micros = tnow;
+        _state.last_time_micros = _mon.pcu_shared_data.micros_batt;
     }
     // Not healthy if no messages for 5 seconds
-    else if (((tnow - _state.last_time_micros) > P2_NOT_HEALTY_MICROS)){
+    else if (((AP_HAL::micros() - _state.last_time_micros) > P2_NOT_HEALTY_MICROS)){
         _state.healthy = false;
     }
 }
@@ -72,9 +68,6 @@ bool AP_BattMonitor_P2::parse_message()
     if (nbytes <= 0 ) {
         return false;
     }
-
-    // flag to allow cases below to reset parser state
-    bool reset_parser = false;
 
     // true if a packet was successfully parsed
     bool parsed = false;
@@ -90,6 +83,14 @@ bool AP_BattMonitor_P2::parse_message()
 
         _msg_buff[_msg_buff_len++] = b;
 
+        // flag to allow cases below to reset parser state
+        bool reset_parser = false;
+
+        // protect against overly long messages
+        if (_msg_buff_len >= AP_BATT_P2_PACKET_MAX_LENGTH) {
+            reset_parser = true;
+        }
+
         // process byte depending upon current state
         switch (_parsed_msg.state) {
 
@@ -97,6 +98,7 @@ bool AP_BattMonitor_P2::parse_message()
             if (b == AP_BATT_P2_HEADER) {
                 _parsed_msg.state = ParseState::WAITING_FOR_OPERATION;
             } else {
+                debug("Wrong header");
                 reset_parser = true;
             }
             break;
@@ -124,6 +126,7 @@ bool AP_BattMonitor_P2::parse_message()
                 _parsed_msg.sender_id = b;
                 _parsed_msg.state = ParseState::WAITING_FOR_RECEIVER_ID;
             } else {
+                debug("error: wrong sender");
                 reset_parser = true;
             }
             break;
@@ -155,11 +158,8 @@ bool AP_BattMonitor_P2::parse_message()
                 // add 0x00 bytes to fill the array until his length is multiple of 4
                 uint8_t checksum_length = _parsed_msg.data_len+5;
                 uint8_t msg_buffer_checksum_size = checksum_length + ((4 - (checksum_length % 4)) % 4);
-                uint8_t msg_buffer_checksum[msg_buffer_checksum_size];
+                uint8_t msg_buffer_checksum[msg_buffer_checksum_size] = { 0 };
                 memcpy(msg_buffer_checksum, _msg_buff+1, checksum_length);
-                for (uint8_t j = checksum_length; j < msg_buffer_checksum_size; j++) {
-                    msg_buffer_checksum[j] = 0x00;
-                }
 
                 // calculate checksum
                 uint32_t checksum = 0xFFFFFFFF;
@@ -168,7 +168,7 @@ bool AP_BattMonitor_P2::parse_message()
                     switch (_parsed_msg.packet_id) {
                         case AP_BATT_P2_PACKET_ID_BATT:
                             parse_batt();
-                            debug("Batt parsed: %lu", AP_HAL::micros()/1000000);
+                            debug("Batt parsed: %lu", (long unsigned)AP_HAL::micros()/1000000);
                             parsed = true;
                             break;
                         case AP_BATT_P2_PACKET_ID_FUEL:
@@ -187,7 +187,7 @@ bool AP_BattMonitor_P2::parse_message()
         }
 
         // handle reset of parser
-        if (reset_parser || _msg_buff_len == 40) {
+        if (reset_parser) {
             _parsed_msg.state = ParseState::WAITING_FOR_HEADER;
             _msg_buff_len = 0;
             _parsed_msg.data_bytes_received = 0;
@@ -198,10 +198,6 @@ bool AP_BattMonitor_P2::parse_message()
 
 void AP_BattMonitor_P2::parse_batt()
 {
-    _volt = UINT16_VALUE(_msg_buff[9], _msg_buff[8]) * 0.1f;
-    _amp = UINT16_VALUE(_msg_buff[21], _msg_buff[20]) * 0.1f;
-    _temp = (static_cast<float>(static_cast<int16_t>(((_msg_buff[25]) << 8) | (_msg_buff[24]))));
-    
     // populate shared data
     _mon.pcu_shared_data.vbatt_3s = UINT16_VALUE(_msg_buff[7], _msg_buff[6]);
     _mon.pcu_shared_data.vbatt_12s = UINT16_VALUE(_msg_buff[9], _msg_buff[8]);
@@ -223,6 +219,7 @@ void AP_BattMonitor_P2::parse_fuel()
     _mon.pcu_shared_data.fuel_level_full = _msg_buff[6] > 0;
     _mon.pcu_shared_data.flow_sensor_raw = UINT32_VALUE(_msg_buff[17], _msg_buff[16], _msg_buff[15], _msg_buff[14]);
 }
+
 
 // read - read the voltage and current
 void AP_BattMonitor_P2_3s::read()

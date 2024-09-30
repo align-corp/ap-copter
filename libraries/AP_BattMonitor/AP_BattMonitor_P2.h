@@ -7,6 +7,7 @@
 #include "AP_BattMonitor.h"
 
 // Protocol 
+#define AP_BATT_P2_PACKET_MAX_LENGTH 40
 #define AP_BATT_P2_HEADER 0x77
 #define AP_BATT_P2_OPERATION_BROADCAST 0xAC
 #define AP_BATT_P2_LENGTH_BATT 28
@@ -18,7 +19,6 @@
 class AP_BattMonitor_P2 : public AP_BattMonitor_Backend
 {
 public:
-
     // inherit constructor
     using AP_BattMonitor_Backend::AP_BattMonitor_Backend;
 
@@ -66,10 +66,7 @@ private:
     } _parsed_msg;
 
     AP_HAL::UARTDriver *_uart = nullptr;
-    float _volt = 0;
-    float _amp = 0;
-    float _temp = 0;
-    uint8_t _msg_buff[40];
+    uint8_t _msg_buff[AP_BATT_P2_PACKET_MAX_LENGTH];
     uint8_t _msg_buff_len = 0;
 };
 
