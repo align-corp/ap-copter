@@ -572,7 +572,7 @@ AP_BattMonitor::init()
             case Type::ALIGN_PCU:
                 drivers[instance] = new AP_BattMonitor_PCU(*this, state[instance], _params[instance]);
                 break;
-#endif
+#endif // AP_BATTERY_PCU_ENABLED
 #if AP_BATTERY_P2_ENABLED
             case Type::ALIGN_P2:
                 drivers[instance] = new AP_BattMonitor_P2(*this, state[instance], _params[instance]);
@@ -583,7 +583,10 @@ AP_BattMonitor::init()
             case Type::ALIGN_P2_BEC:
                 drivers[instance] = new AP_BattMonitor_P2_BEC(*this, state[instance], _params[instance]);
                 break;
-#endif
+            case Type::ALIGN_P2_FLOW:
+                drivers[instance] = new AP_BattMonitor_P2_FuelFlow(*this, state[instance], _params[instance]);
+                break;
+#endif // AP_BATTERY_P2_ENABLED
             case Type::NONE:
             default:
                 break;

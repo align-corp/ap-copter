@@ -51,7 +51,7 @@ class AP_BattMonitor_PCU;
 class AP_BattMonitor_P2;
 class AP_BattMonitor_P2_3s;
 class AP_BattMonitor_P2_BEC;
-
+class AP_BattMonitor_P2_FuelFlow;
 
 
 class AP_BattMonitor
@@ -82,6 +82,7 @@ class AP_BattMonitor
     friend class AP_BattMonitor_P2;
     friend class AP_BattMonitor_P2_3s;
     friend class AP_BattMonitor_P2_BEC;
+    friend class AP_BattMonitor_P2_FuelFlow;
 
 public:
 
@@ -125,6 +126,7 @@ public:
         ALIGN_P2                       = 30,
         ALIGN_P2_3S                    = 31,
         ALIGN_P2_BEC                   = 32,
+        ALIGN_P2_FLOW                  = 33,
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);

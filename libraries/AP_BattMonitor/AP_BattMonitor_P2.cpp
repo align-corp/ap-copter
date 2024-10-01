@@ -11,6 +11,19 @@
 #include <AP_Arming/AP_Arming.h>
 #endif
 
+/*
+  battery and fluid monitor for Align E1.
+
+  The first driver AP_BattMonitor_P2 actually parse the protocol,
+  and return the main 12s battery data.
+  Second driver AP_BattMonitor_P2_3s return the 3s battery data.
+  Third driver AP_BattMonitor_P2_BEC return the BEC voltages
+  Fourth driver AP_BattMonitor_P2_FuelFlow return the flow infos:
+    - current in Amps maps to in litres/minute
+    - consumed mAh is in consumed millilitres
+    - 1.0v voltage if liquid is full
+ */
+
 // not healthy in 5 s
 #define P2_NOT_HEALTY_MICROS 5000000
 
@@ -168,7 +181,6 @@ bool AP_BattMonitor_P2::parse_message()
                     switch (_parsed_msg.packet_id) {
                         case AP_BATT_P2_PACKET_ID_BATT:
                             parse_batt();
-                            debug("Batt parsed: %lu", (long unsigned)AP_HAL::micros()/1000000);
                             parsed = true;
                             break;
                         case AP_BATT_P2_PACKET_ID_FUEL:
@@ -215,9 +227,10 @@ void AP_BattMonitor_P2::parse_batt()
 
 void AP_BattMonitor_P2::parse_fuel()
 {
-    //TODO: do something with this data. Maybe a fuel flow battery monitor?
+    // populate shared data
     _mon.pcu_shared_data.fuel_level_full = _msg_buff[6] > 0;
     _mon.pcu_shared_data.flow_sensor_raw = UINT32_VALUE(_msg_buff[17], _msg_buff[16], _msg_buff[15], _msg_buff[14]);
+    _mon.pcu_shared_data.micros_fuel = AP_HAL::micros();
 }
 
 
@@ -226,10 +239,9 @@ void AP_BattMonitor_P2_3s::read()
 {
     _state.healthy = (AP_HAL::micros() - _mon.pcu_shared_data.micros_batt) < P2_NOT_HEALTY_MICROS;
 
-    if (_mon.pcu_shared_data.micros_batt != _last_update_micros) {
+    if (_mon.pcu_shared_data.micros_batt != _state.last_time_micros) {
 
         // update time
-        _last_update_micros = _mon.pcu_shared_data.micros_batt;
         _state.last_time_micros = _mon.pcu_shared_data.micros_batt;
     
         // update voltage
@@ -243,12 +255,16 @@ void AP_BattMonitor_P2_3s::read()
 // read - read the voltage and current
 void AP_BattMonitor_P2_BEC::read()
 {
-    _state.healthy = (AP_HAL::micros() - _mon.pcu_shared_data.micros_batt) < P2_NOT_HEALTY_MICROS;
+    if ((AP_HAL::micros() - _mon.pcu_shared_data.micros_batt) > P2_NOT_HEALTY_MICROS) {
+        _state.healthy = false;
+        return;
+    }
 
-    if (_mon.pcu_shared_data.micros_batt != _last_update_micros) {
+    if (_mon.pcu_shared_data.micros_batt != _state.last_time_micros) {
+        // set healthy flag
+        _state.healthy = true;
 
         // update time
-        _last_update_micros = _mon.pcu_shared_data.micros_batt;
         _state.last_time_micros = _mon.pcu_shared_data.micros_batt;
     
         // update voltage
@@ -260,5 +276,62 @@ void AP_BattMonitor_P2_BEC::read()
         _state.current_amps = _mon.pcu_shared_data.ibec * 0.1f;
     }
 }
+
+/// Constructor
+AP_BattMonitor_P2_FuelFlow::AP_BattMonitor_P2_FuelFlow( AP_BattMonitor &mon,
+                                                        AP_BattMonitor::BattMonitor_State &mon_state,
+                                                        AP_BattMonitor_Params &params) :
+    AP_BattMonitor_Analog(mon, mon_state, params)
+{ 
+    // Just to be sure it is init to 0
+    _state.last_time_micros = 0;
+}
+
+void AP_BattMonitor_P2_FuelFlow::read()
+{
+    // check healthy state
+    if ((AP_HAL::micros() - _mon.pcu_shared_data.micros_fuel) > P2_NOT_HEALTY_MICROS) {
+        _state.healthy = false;
+        return;
+    }
+
+    if (_mon.pcu_shared_data.micros_fuel != _state.last_time_micros) {
+        if (_state.last_time_micros == 0) {
+        // need initial time and liters
+        _state.last_time_micros = _mon.pcu_shared_data.micros_fuel;
+        _last_litres = _mon.pcu_shared_data.flow_sensor_raw * _curr_amp_per_volt * 0.001f;
+        return;
+        }
+
+        // set healthy flag
+        _state.healthy = true;
+
+        float dt = (_mon.pcu_shared_data.micros_fuel - _state.last_time_micros) * 1.0e-6f;
+
+        /*
+        this driver assumes that BATTx_AMP_PERVLT is set to give the
+        number of millilitres per pulse.
+        */
+        float litres = _mon.pcu_shared_data.flow_sensor_raw * _curr_amp_per_volt * 0.001f;
+        float litres_pec_sec = (litres - _last_litres) / dt;
+
+        // update time and last litres
+        _state.last_time_micros = _mon.pcu_shared_data.micros_fuel;
+        _last_litres = litres;
+
+        // map amps to litres/minute
+        _state.current_amps = litres_pec_sec * 60;
+
+        // map consumed_mah to consumed millilitres
+        _state.consumed_mah = litres * 1000;
+
+        // map consumed_wh using fixed voltage of 1
+        _state.consumed_wh = _state.consumed_mah;
+
+        // use voltage as digital signal for fuel level sensor
+        _state.voltage = _mon.pcu_shared_data.fuel_level_full ? 1.0f : 0.0f;
+    }
+}
+
 
 #endif
