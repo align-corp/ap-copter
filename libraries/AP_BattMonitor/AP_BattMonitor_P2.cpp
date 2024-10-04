@@ -7,9 +7,8 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_Math/AP_Math.h>
 #include <AP_SerialManager/AP_SerialManager.h>
-#if !defined(HAL_BUILD_AP_PERIPH)
-#include <AP_Arming/AP_Arming.h>
-#endif
+#include <AP_Notify/AP_Notify.h>
+#include <AP_GPS/AP_GPS.h>
 
 /*
   battery and fluid monitor for Align E1.
@@ -26,6 +25,27 @@
 
 // not healthy in 5 s
 #define P2_NOT_HEALTY_MICROS 5000000
+#define P2_SEND_MESSAGE_MICROS 500000
+
+// State LED
+#define AP_BATTERY_P2_LED_1_LONG_BLINK_RED      0
+#define AP_BATTERY_P2_LED_1_FAST_BLINK_GREEN    2
+#define AP_BATTERY_P2_LED_2_FAST_BLINK_GREEN    3
+#define AP_BATTERY_P2_LED_3_FAST_BLINK_GREEN    4
+#define AP_BATTERY_P2_LED_4_FAST_BLINK_GREEN    5
+#define AP_BATTERY_P2_LED_2_FAST_BLINK_RED      7
+#define AP_BATTERY_P2_LED_1_FAST_BLINK_RED      9
+#define AP_BATTERY_P2_LED_3_FAST_BLINK_ORANGE   10
+
+// Flights mode
+#define ALT_HOLD 2
+#define AUTO 3
+#define GUIDED 4
+#define LOITER 5
+#define RTL 6
+#define LAND 9
+#define BRAKE 17
+#define SMART_RTL 21
 
 #ifdef AP_BATTERY_P2_DEBUG
 #define debug(fmt, args ...)  do {hal.console->printf("%s:%d: " fmt "\n", __FUNCTION__, __LINE__, ## args); } while(0)
@@ -48,6 +68,8 @@ void AP_BattMonitor_P2::read()
         return;
     }
 
+    const uint32_t now_micros = AP_HAL::micros();
+
     // Receive battery informations from P2
     if (parse_message()) {
         // Healthy if messages are received
@@ -68,8 +90,13 @@ void AP_BattMonitor_P2::read()
         _state.last_time_micros = _mon.pcu_shared_data.micros_batt;
     }
     // Not healthy if no messages for 5 seconds
-    else if (((AP_HAL::micros() - _state.last_time_micros) > P2_NOT_HEALTY_MICROS)){
+    else if (((now_micros - _state.last_time_micros) > P2_NOT_HEALTY_MICROS)){
         _state.healthy = false;
+    }
+
+    if (now_micros - _last_send_micros > P2_SEND_MESSAGE_MICROS) {
+        send_message();
+        _last_send_micros = now_micros;
     }
 }
 
@@ -167,16 +194,7 @@ bool AP_BattMonitor_P2::parse_message()
             _parsed_msg.checksum = _parsed_msg.checksum | (b << (_parsed_msg.checksum_bit*8));
             _parsed_msg.checksum_bit++;
             if (_parsed_msg.checksum_bit == 4) {
-                // buffer must have an exact multiple of 4 bytes before pass it for checksum calculation
-                // add 0x00 bytes to fill the array until his length is multiple of 4
-                uint8_t checksum_length = _parsed_msg.data_len+5;
-                uint8_t msg_buffer_checksum_size = checksum_length + ((4 - (checksum_length % 4)) % 4);
-                uint8_t msg_buffer_checksum[msg_buffer_checksum_size] = { 0 };
-                memcpy(msg_buffer_checksum, _msg_buff+1, checksum_length);
-
-                // calculate checksum
-                uint32_t checksum = 0xFFFFFFFF;
-                checksum = crc_crc32_mpeg2(checksum, msg_buffer_checksum, msg_buffer_checksum_size);
+                uint32_t checksum = strange_crc32(_msg_buff+1, _parsed_msg.data_len+5);
                 if (checksum == _parsed_msg.checksum) {
                     switch (_parsed_msg.packet_id) {
                         case AP_BATT_P2_PACKET_ID_BATT:
@@ -208,6 +226,19 @@ bool AP_BattMonitor_P2::parse_message()
     return parsed;
 }
 
+uint32_t AP_BattMonitor_P2::strange_crc32(const uint8_t *buf, uint8_t size)
+{
+    // buffer must have an exact multiple of 4 bytes before pass it for checksum calculation
+    // add 0x00 bytes to fill the array until his length is multiple of 4
+    uint8_t msg_buffer_checksum_size = size + ((4 - (size % 4)) % 4);
+    uint8_t msg_buffer_checksum[msg_buffer_checksum_size] = { 0 };
+    memcpy(msg_buffer_checksum, buf, size);
+
+    // calculate checksum
+    uint32_t checksum = 0xFFFFFFFF;
+    return crc_crc32_mpeg2(checksum, msg_buffer_checksum, msg_buffer_checksum_size);
+}
+
 void AP_BattMonitor_P2::parse_batt()
 {
     // populate shared data
@@ -233,6 +264,80 @@ void AP_BattMonitor_P2::parse_fuel()
     _mon.pcu_shared_data.micros_fuel = AP_HAL::micros();
 }
 
+void AP_BattMonitor_P2::send_message()
+{
+    // Pointer to notify to check system status
+    const AP_Notify &notify = AP::notify();
+
+    uint8_t heartbeat[18] = {AP_BATT_P2_HEADER, AP_BATT_P2_OPERATION_BROADCAST, AP_BATT_P2_LENGTH_HEARTBEAT, 0x01, 0x00, AP_BATT_P2_PACKET_ID_HEARTBEAT};
+    
+    if (notify.flags.gps_status < AP_GPS::GPS_OK_FIX_3D || notify.flags.gps_num_sats < 8) {
+        heartbeat[10] = 4; // GPS error
+    }
+
+    if (!notify.flags.pre_arm_check) {
+        heartbeat[12] = AP_BATTERY_P2_LED_2_FAST_BLINK_RED;
+    } else {
+        switch (notify.flags.flight_mode)
+        {
+        case ALT_HOLD:
+            heartbeat[12] = AP_BATTERY_P2_LED_3_FAST_BLINK_ORANGE;
+            break;
+
+        case LOITER:
+            heartbeat[12] = AP_BATTERY_P2_LED_2_FAST_BLINK_GREEN;
+            break;
+
+        case AUTO:
+        case GUIDED:
+        case BRAKE:
+            heartbeat[12] = AP_BATTERY_P2_LED_3_FAST_BLINK_GREEN;
+            break;
+
+        case RTL:
+        case SMART_RTL:
+            heartbeat[12] = AP_BATTERY_P2_LED_4_FAST_BLINK_GREEN;
+            break;
+        
+        default:
+            heartbeat[12] = AP_BATTERY_P2_LED_1_FAST_BLINK_RED;
+            break;
+        }
+    }
+
+    //Calculate and add checksum
+    uint32_t checksum = strange_crc32(heartbeat+1, AP_BATT_P2_LENGTH_HEARTBEAT+5);
+    heartbeat[14] = checksum & 0xFF;
+    heartbeat[15] = (checksum >> 8) & 0xFF;
+    heartbeat[16] = (checksum >> 16) & 0xFF;
+    heartbeat[17] = (checksum >> 24) & 0xFF;
+
+    // Write the message to the Serial port
+    _uart->write((const uint8_t*)heartbeat, ARRAY_SIZE(heartbeat));
+
+    if (!(notify.flags.failsafe_gcs || notify.flags.failsafe_radio)) {
+        // send gcs heartbeat packet
+        uint8_t heartbeat_gcs[18] = {   AP_BATT_P2_HEADER,
+                                        AP_BATT_P2_OPERATION_BROADCAST,
+                                        AP_BATT_P2_LENGTH_HEARTBEAT,
+                                        0xFF, // sender ID: GCS
+                                        0x00,
+                                        AP_BATT_P2_PACKET_ID_HEARTBEAT,
+                                        0x00, // payload: all 0x00
+                                        0x00,
+                                        0x00,
+                                        0x00,
+                                        0x00,
+                                        0x00,
+                                        0x00,
+                                        0x00,
+                                        0xC1, // checksum: hard coded for efficiency
+                                        0x14,
+                                        0x2C,
+                                        0x85 };
+        _uart->write((const uint8_t*)heartbeat_gcs, ARRAY_SIZE(heartbeat_gcs));
+    }
+}
 
 // read - read the voltage and current
 void AP_BattMonitor_P2_3s::read()
@@ -299,7 +404,7 @@ void AP_BattMonitor_P2_FuelFlow::read()
         if (_state.last_time_micros == 0) {
         // need initial time and liters
         _state.last_time_micros = _mon.pcu_shared_data.micros_fuel;
-        _last_litres = _mon.pcu_shared_data.flow_sensor_raw * _curr_amp_per_volt * 0.001f;
+        _zero_milliliters = _mon.pcu_shared_data.flow_sensor_raw;
         return;
         }
 
@@ -312,7 +417,7 @@ void AP_BattMonitor_P2_FuelFlow::read()
         this driver assumes that BATTx_AMP_PERVLT is set to give the
         number of millilitres per pulse.
         */
-        float litres = _mon.pcu_shared_data.flow_sensor_raw * _curr_amp_per_volt * 0.001f;
+        float litres = (_mon.pcu_shared_data.flow_sensor_raw - _zero_milliliters) * _curr_amp_per_volt * 0.001f;
         float litres_pec_sec = (litres - _last_litres) / dt;
 
         // update time and last litres
@@ -333,5 +438,11 @@ void AP_BattMonitor_P2_FuelFlow::read()
     }
 }
 
+bool AP_BattMonitor_P2_FuelFlow::reset_remaining(float litres)
+{
+    _params._pack_capacity.set(litres * 1000);
+    _zero_milliliters = _mon.pcu_shared_data.flow_sensor_raw;
+    return true;
+}
 
 #endif

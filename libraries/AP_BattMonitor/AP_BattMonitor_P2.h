@@ -13,9 +13,11 @@
 #define AP_BATT_P2_OPERATION_BROADCAST 0xAC
 #define AP_BATT_P2_LENGTH_BATT 28
 #define AP_BATT_P2_LENGTH_FUEL 12
+#define AP_BATT_P2_LENGTH_HEARTBEAT 8
 #define AP_BATT_P2_SENDER_P2 0x02
 #define AP_BATT_P2_PACKET_ID_BATT 0x12
 #define AP_BATT_P2_PACKET_ID_FUEL 0x11
+#define AP_BATT_P2_PACKET_ID_HEARTBEAT 0x01
 
 class AP_BattMonitor_P2 : public AP_BattMonitor_Backend
 {
@@ -39,9 +41,13 @@ private:
     // Receive and parse the message, call at 10 Hz
     bool parse_message();
 
+    uint32_t strange_crc32(const uint8_t *buf, uint8_t size);
+
     void parse_batt();
 
     void parse_fuel();
+
+    void send_message();
 
     enum class ParseState : uint8_t {
         WAITING_FOR_HEADER,
@@ -69,6 +75,7 @@ private:
     AP_HAL::UARTDriver *_uart = nullptr;
     uint8_t _msg_buff[AP_BATT_P2_PACKET_MAX_LENGTH];
     uint8_t _msg_buff_len = 0;
+    uint32_t _last_send_micros = 0;
 };
 
 class AP_BattMonitor_P2_3s : public AP_BattMonitor_Backend
@@ -122,9 +129,14 @@ public:
 
     /// returns true if battery monitor provides current info
     bool has_current() const override { return true; }
+
+    /// restore liquid capacity, percentage should be how may liters was filled in
+    bool reset_remaining(float litres) override;
+
 private:
     uint32_t _last_update_micros = 0;
-    float _last_litres;
+    float _last_litres = 0;
+    uint32_t _zero_milliliters;
 };
 
 
