@@ -31,7 +31,6 @@
 extern const AP_HAL::HAL& hal;
 
 #define ALIGN_RDR01_FRAME_HEADER 0x55
-#define ALIGN_RDR01_DIST_MAX_CM 5000
 
 // distance returned in reading_m
 bool AP_RangeFinder_Align_RDR01::get_reading(float &reading_m)
@@ -90,10 +89,12 @@ bool AP_RangeFinder_Align_RDR01::get_reading(float &reading_m)
             break;
 
         case ParseState::WAITING_FOR_LOW_BYTE:
+            _dist_low_byte = b;
             _state = ParseState::WAITING_FOR_HIGH_BYTE;
             break;
 
         case ParseState::WAITING_FOR_HIGH_BYTE:
+            _dist_high_byte = b;
             _state = ParseState::WAITING_FOR_CHECKSUM;
             break;
 
@@ -101,13 +102,12 @@ bool AP_RangeFinder_Align_RDR01::get_reading(float &reading_m)
             uint8_t checksum = crc_sum_of_bytes(_msg_buff+1, 4);
             if (b == checksum) {
                 uint16_t dist_cm = UINT16_VALUE(_dist_high_byte, _dist_low_byte);
-                if (dist_cm > 0 && dist_cm < ALIGN_RDR01_DIST_MAX_CM) {
-                    sum_reading_cm += dist_cm;
-                    count_read++;
-                }
+                sum_reading_cm += dist_cm;
+                count_read++;
             } else {
                 debug("checksum expected:%x, got:%x", checksum, b);
             }
+            reset_parser = true;
             break;
         }
 
