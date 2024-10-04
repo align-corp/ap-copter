@@ -9,6 +9,7 @@
 #include <AP_SerialManager/AP_SerialManager.h>
 #include <AP_Notify/AP_Notify.h>
 #include <AP_GPS/AP_GPS.h>
+#include <RC_Channel/RC_Channel.h>
 
 /*
   battery and fluid monitor for Align E1.
@@ -315,7 +316,7 @@ void AP_BattMonitor_P2::send_message()
     // Write the message to the Serial port
     _uart->write((const uint8_t*)heartbeat, ARRAY_SIZE(heartbeat));
 
-    if (!(notify.flags.failsafe_gcs || notify.flags.failsafe_radio)) {
+    if (!notify.flags.failsafe_radio && rc().has_had_rc_receiver()) {
         // send gcs heartbeat packet
         uint8_t heartbeat_gcs[18] = {   AP_BATT_P2_HEADER,
                                         AP_BATT_P2_OPERATION_BROADCAST,
