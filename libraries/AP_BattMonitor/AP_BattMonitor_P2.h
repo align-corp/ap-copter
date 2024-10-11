@@ -91,6 +91,9 @@ public:
     /// returns true if battery monitor instance provides current info
     bool has_current() const override { return true; };
 
+    /// use temperature to monitor motor fun: 1 ON, 0 OFF
+    virtual bool has_temperature() const override { return true; }
+
 private:
     uint32_t _last_update_micros = 0;
 };

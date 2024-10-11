@@ -355,6 +355,9 @@ void AP_BattMonitor_P2_3s::read()
         
         // update current
         _state.current_amps = _mon.pcu_shared_data.ibatt_3s * 0.1f;
+
+        // update fan state as temperature
+        _state.temperature = _mon.pcu_shared_data.fan_on ? 1.0f : 0.0f;
     }
 }
 
