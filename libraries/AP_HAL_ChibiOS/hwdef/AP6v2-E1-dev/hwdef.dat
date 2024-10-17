@@ -1,5 +1,12 @@
 include ../AP6v2/hwdef.dat
 
+define ALIGN_FRAME ALIGN_E1_DEV
+
+# undef USB setup for easy access with QGC
+undef USB_VENDOR
+undef USB_PRODUCT
+undef USB_STRING_MANUFACTURER
+
 # PCU on Serial 4
 define AP_BATTERY_P2_ENABLED 1
 undef DEFAULT_SERIAL4_PROTOCOL
@@ -18,10 +25,3 @@ define DEFAULT_SERIAL3_BAUD 115
 
 # 3 notch filters
 define HAL_INS_NUM_HARMONIC_NOTCH_FILTERS 3
-
-define ALIGN_FRAME ALIGN_E1_DEV
-
-# undef USB setup for easy access with QGC
-undef USB_VENDOR
-undef USB_PRODUCT
-undef USB_STRING_MANUFACTURER
