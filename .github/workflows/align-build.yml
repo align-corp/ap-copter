@@ -72,7 +72,7 @@ jobs:
     strategy:
       fail-fast: false  # don't cancel if a job from the matrix fails
       matrix:
-        config: [
+        copter: [
             AP3-M460,
             AP3-M460-dev,
             AP3-M490,
@@ -98,6 +98,10 @@ jobs:
             AP6v2-M4T12-dev,
             AP6v2-M4T12,
         ]
+        heli: [
+            AP6v2-E1,
+            AP6v2-E1-dev,
+        ]
 
     steps:
       - uses: actions/checkout@v4
@@ -110,15 +114,31 @@ jobs:
           git config --global --add safe.directory ${GITHUB_WORKSPACE}
           PATH="/usr/lib/ccache:/opt/gcc-arm-none-eabi-10/bin:$PATH"
           PATH="/github/home/.local/bin:$PATH"
-          ./waf configure --board ${{matrix.config}}
+          ./waf configure --board ${{matrix.copter}}
           ./waf clean
           ./waf copter
+
+      - name: align heli build
+        shell: bash
+        run: |
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
+          PATH="/usr/lib/ccache:/opt/gcc-arm-none-eabi-10/bin:$PATH"
+          PATH="/github/home/.local/bin:$PATH"
+          ./waf configure --board ${{matrix.heli}}
+          ./waf clean
+          ./waf heli
 
       - name: upload copter apj
         uses: actions/upload-artifact@v3
         with:
-          name: ${{matrix.config}}
-          path: build/${{matrix.config}}/bin/arducopter.apj
+          name: ${{matrix.copter}}
+          path: build/${{matrix.copter}}/bin/arducopter.apj
+
+      - name: upload heli apj
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{matrix.heli}}
+          path: build/${{matrix.heli}}/bin//arducopter-heli.apj
 
   upload:
     runs-on: ubuntu-22.04
