@@ -136,6 +136,7 @@ void AR_PivotTurn::check_activation(float desired_heading_deg, bool force_active
             _state = PivotState::WAIT_DELAY_IN;
         }
         break;
+
     case PivotState::WAIT_DELAY_IN:
         // delay in
         if (now_ms - _delay_start_ms >= get_delay_in_duration_ms()) {
