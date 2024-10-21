@@ -17,6 +17,8 @@ define ALIGN_M4P_DEV    0x03050000
 define ALIGN_M4P        0x03050001
 define ALIGN_E1_DEV     0x03400000
 define ALIGN_E1         0x03400001
+define ALIGN_TB70_DEV   0x03410000
+define ALIGN_TB70       0x03410001
 
 # USB setup (future use)
 USB_VENDOR 0x2A58 # ALIGN Corporation Limited
