@@ -2,8 +2,9 @@ include ../AP6v2/hwdef.dat
 
 # defines
 define ARMING_DELAY_SEC 0.5f
+define PARAM_READONLY 1
 
-define ALIGN_FRAME ALIGN_M4P_DEV
+define ALIGN_FRAME ALIGN_M4P
 
 # Telemetry on Serial 1
 define DEFAULT_SERIAL1_BAUD 115
@@ -15,8 +16,3 @@ define DEFAULT_SERIAL2_BAUD 921
 undef DEFAULT_SERIAL3_PROTOCOL
 define DEFAULT_SERIAL3_PROTOCOL SerialProtocol_Rangefinder
 define DEFAULT_SERIAL3_BAUD 921
-
-# undef USB setup for easy access with QGC
-undef USB_VENDOR
-undef USB_PRODUCT
-undef USB_STRING_MANUFACTURER
