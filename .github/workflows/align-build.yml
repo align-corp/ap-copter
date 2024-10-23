@@ -95,12 +95,16 @@ jobs:
             AP6v2-M490-G3P,
             AP6v2-M6T22,
             AP6v2-M6T22-dev,
-            AP6v2-M4T12-dev,
             AP6v2-M4T12,
+            AP6v2-M4T12-dev,
+            AP6v2-M4P,
+            AP6v2-M4P-dev,
         ]
         heli: [
             AP6v2-E1,
             AP6v2-E1-dev,
+            AP6v2-TB70,
+            AP6v2-TB70-dev,
         ]
 
     steps:
