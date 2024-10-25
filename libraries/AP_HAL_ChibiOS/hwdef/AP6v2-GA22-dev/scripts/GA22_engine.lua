@@ -1,7 +1,7 @@
--- emergency stop, starter and fuel check for Align mower - version 2.2
+-- emergency stop, starter and fuel check for Align mower - version 2.3
 local MILLIS_UPDATE = 100
 local START_PIN = 57
-local FUEL_PIN = 58
+local FUEL_PIN = 54
 local IGNITION_PIN = 59
 local PARAM_TABLE_KEY = 41
 assert(param:add_table(PARAM_TABLE_KEY, "ENG_", 11), "could not add param table")
