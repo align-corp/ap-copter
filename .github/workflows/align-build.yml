@@ -41,6 +41,8 @@ jobs:
             AP6v2-M4T12-dev,
             AP6v2-M4P,
             AP6v2-M4P-dev,
+            AP6v2-M450,
+            AP6v2-M450-dev,
         ]
 
     steps:
