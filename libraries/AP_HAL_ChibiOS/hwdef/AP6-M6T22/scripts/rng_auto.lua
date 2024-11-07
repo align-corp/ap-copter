@@ -9,7 +9,7 @@ local distances_count = {0, 0, 0, 0, 0, 0, 0, 0, 0}
 local last_gcs_string_sent = uint32_t(0)
 assert(param:add_table(PARAM_TABLE_KEY, "OAL_", 4), "could not add param table")
 assert(param:add_param(PARAM_TABLE_KEY, 1, "ENABLE", 1), "could not add param1")
-assert(param:add_param(PARAM_TABLE_KEY, 2, "NEAR_MS", 200), "could not add param2")
+assert(param:add_param(PARAM_TABLE_KEY, 2, "NEAR_MS", 600), "could not add param2")
 assert(param:add_param(PARAM_TABLE_KEY, 3, "MIN_SPD", 0.5), "could not add param3")
 assert(param:add_param(PARAM_TABLE_KEY, 4, "DEBUG", 0), "could not add param4")
 local ENABLE = Parameter("OAL_ENABLE")
