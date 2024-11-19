@@ -2,6 +2,8 @@
 
 #if AP_BATTERY_P2_ENABLED
 
+//#define AP_BATTERY_P2_DEBUG
+
 #include "AP_BattMonitor_P2.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Common/AP_Common.h>
@@ -45,6 +47,7 @@
 #define LOITER 5
 #define RTL 6
 #define LAND 9
+#define POSHOLD 16
 #define BRAKE 17
 #define SMART_RTL 21
 
@@ -267,6 +270,9 @@ void AP_BattMonitor_P2::parse_fuel()
 
 void AP_BattMonitor_P2::send_message()
 {
+    // static local count variable for LED test
+    static uint8_t led_count = 0;
+
     // Pointer to notify to check system status
     const AP_Notify &notify = AP::notify();
 
@@ -276,7 +282,20 @@ void AP_BattMonitor_P2::send_message()
         heartbeat[10] = 4; // GPS error
     }
 
-    if (!notify.flags.pre_arm_check) {
+    // Tail LEDs controller
+    if (notify.flags.flight_mode == POSHOLD) {
+        // Test LED routine
+        if (led_count < 5) {
+            heartbeat[12] = AP_BATTERY_P2_LED_2_FAST_BLINK_RED;
+        } else if (led_count < 10) {
+            heartbeat[12] = AP_BATTERY_P2_LED_3_FAST_BLINK_ORANGE;
+        } else if (led_count < 15) {
+            heartbeat[12] = AP_BATTERY_P2_LED_3_FAST_BLINK_GREEN;
+        } else {
+            led_count = 0;
+        }
+        led_count++;
+    } else if (!notify.flags.pre_arm_check) {
         heartbeat[12] = AP_BATTERY_P2_LED_2_FAST_BLINK_RED;
     } else {
         switch (notify.flags.flight_mode)
