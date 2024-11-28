@@ -80,6 +80,8 @@ void Copter::init_rc_out()
 void Copter::read_radio()
 {
     const uint32_t tnow_ms = millis();
+    static uint32_t debug_count = 0; //debug: see if function is being called
+    debug_count++;
 
     if (rc().read_input()) {
         ap.new_radio_frame = true;
@@ -107,6 +109,26 @@ void Copter::read_radio()
 
     // trigger failsafe if no update from the RC Radio for RC_FS_TIMEOUT seconds
     const uint32_t elapsed_ms = tnow_ms - last_radio_update_ms;
+
+    // debug: log maximum elapsed milliseconds to better understand failsafe issue
+    static uint32_t max_elapsed_ms = 0;
+    static uint32_t last_update_log_ms = 0;
+    if (elapsed_ms > max_elapsed_ms) {
+        max_elapsed_ms = elapsed_ms;
+    }
+    if (tnow_ms - last_update_log_ms > 100) {
+        last_update_log_ms = tnow_ms;
+        AP::logger().Write("RCT", "TimeUS,Delta,Count",
+                "ss-", // units: seconds, meters
+                "FC-", // mult: 1e-6, 1e-2
+                "QII", // format: uint64_t, float
+                AP_HAL::micros64(),
+                max_elapsed_ms,
+                debug_count);
+        max_elapsed_ms = 0;
+        debug_count = 0;
+    }
+
     if (elapsed_ms < rc().get_fs_timeout_ms()) {
         // not timed out yet
         return;
