@@ -297,7 +297,8 @@ void AP_LandingGear::update(float height_above_ground_m)
             alt_m >= _retract_alt &&
             _last_height_above_ground < _retract_alt) {
             // prevent lidar noise near ground to trigger retract
-            if (_last_height_above_ground <= 2 && alt_m > 40) {
+            //TODO: remove hard coded distances
+            if (_last_height_above_ground <= 2 && alt_m > 20) {
                 return;
             }
             retract();
