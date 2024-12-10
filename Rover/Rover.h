@@ -437,12 +437,16 @@ private:
     struct AlignBucket {
         enum class State : uint8_t {
             STOP,
+            STOP_WAIT,
             STOPPED,
             UP,
+            UP_WAIT,
             UPPED,
             DOWN,
+            DOWN_WAIT,
             DOWNED,
         } state[ALIGN_BUCKET_AXIS_NUM];
+        uint32_t last_ms[ALIGN_BUCKET_AXIS_NUM];
     } align_bucket;
 
 public:
