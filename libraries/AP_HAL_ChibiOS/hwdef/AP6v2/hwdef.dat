@@ -26,6 +26,10 @@ define ALIGN_GA22_DEV   0x03800000
 define ALIGN_GA22       0x03800001
 define ALIGN_GA45_DEV   0x03810000
 define ALIGN_GA45       0x03810001
+define ALIGN_GM22_DEV   0x03820000
+define ALIGN_GM22       0x03820001
+define ALIGN_GM45_DEV   0x03830000
+define ALIGN_GM45       0x03830001
 
 # USB setup (future use)
 USB_VENDOR 0x2A58 # ALIGN Corporation Limited
