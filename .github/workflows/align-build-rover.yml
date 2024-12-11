@@ -19,6 +19,10 @@ jobs:
           AP6v2-GA22-dev,
           AP6v2-GA45,
           AP6v2-GA45-dev,
+          AP6v2-GM22,
+          AP6v2-GM22-dev,
+          AP6v2-GM45,
+          AP6v2-GM45-dev,
         ]
 
     steps:
