@@ -1,7 +1,5 @@
 #include "Rover.h"
 
-#define ALIGN_BUCKET_WAIT_RELAY_MS 150
-
 // declare GPIO pins
 const uint8_t ALIGN_BUCKET_GPIO_UP[ALIGN_BUCKET_AXIS_NUM] = {1, 3};
 const uint8_t ALIGN_BUCKET_GPIO_DOWN[ALIGN_BUCKET_AXIS_NUM] = {2, 4};
@@ -9,6 +7,8 @@ const uint8_t ALIGN_BUCKET_PWM_CHAN[ALIGN_BUCKET_AXIS_NUM] = {2, 4};
 
 void Rover::update_align_bucket()
 {
+#if ALIGN_BUCKET_ENABLED
+    uint32_t delay_ms = (uint32_t)(g.align_bucket_delay);
     const uint32_t now_ms = AP_HAL::millis();
     for (uint8_t axis_id = 0; axis_id < ALIGN_BUCKET_AXIS_NUM; axis_id++) {
         // check rc channel input
@@ -35,7 +35,7 @@ void Rover::update_align_bucket()
                 break;
 
             case AlignBucket::State::STOP_WAIT:
-                if (now_ms - align_bucket.last_ms[axis_id] > ALIGN_BUCKET_WAIT_RELAY_MS) {
+                if (now_ms - align_bucket.last_ms[axis_id] > delay_ms) {
                     align_bucket.state[axis_id] = AlignBucket::State::STOPPED;
                 }
                 break;
@@ -56,7 +56,7 @@ void Rover::update_align_bucket()
                 break;
 
             case AlignBucket::State::UP_WAIT:
-                if (now_ms - align_bucket.last_ms[axis_id] > ALIGN_BUCKET_WAIT_RELAY_MS) {
+                if (now_ms - align_bucket.last_ms[axis_id] > delay_ms) {
                     align_bucket.state[axis_id] = AlignBucket::State::UPPED;
                 }
                 break;
@@ -77,7 +77,7 @@ void Rover::update_align_bucket()
                 break;
 
             case AlignBucket::State::DOWN_WAIT:
-                if (now_ms - align_bucket.last_ms[axis_id] > ALIGN_BUCKET_WAIT_RELAY_MS) {
+                if (now_ms - align_bucket.last_ms[axis_id] > delay_ms) {
                     align_bucket.state[axis_id] = AlignBucket::State::DOWNED;
                 }
                 break;
@@ -91,4 +91,5 @@ void Rover::update_align_bucket()
                 break;
         }
     }
+#endif
 }
