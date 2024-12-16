@@ -6,7 +6,7 @@ local IGNITION_PIN = 59
 local PARAM_TABLE_KEY = 41
 assert(param:add_table(PARAM_TABLE_KEY, "ENG_", 11), "could not add param table")
 assert(param:add_param(PARAM_TABLE_KEY, 1, "DEBUG", 0), "could not add param 1")
-assert(param:add_param(PARAM_TABLE_KEY, 2, "FUEL", 0), "could not add param 2")
+assert(param:add_param(PARAM_TABLE_KEY, 2, "FUEL", 1), "could not add param 2")
 assert(param:add_param(PARAM_TABLE_KEY, 3, "CH", 6), "could not replace param 3")
 assert(param:add_param(PARAM_TABLE_KEY, 4, "REV_IGN", 1), "could not replace param 4")
 assert(param:add_param(PARAM_TABLE_KEY, 5, "REV_STR", 0), "could not replace param 5")
